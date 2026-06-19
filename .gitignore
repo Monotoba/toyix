@@ -1,0 +1,19 @@
+# Build outputs
+/build/
+*.o
+*.elf
+*.iso
+*.log
+
+# Editor and OS noise
+*~
+*.swp
+*.swo
+.DS_Store
+
+# Local tooling and private workspace state
+.agents/
+.codex/
+.env
+.env.*
+
