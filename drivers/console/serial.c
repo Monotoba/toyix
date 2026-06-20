@@ -22,7 +22,7 @@ static void serial_init(void) {
 
 static void serial_putc(char c) {
     if (c == '\n') {
-        serial_putc('r');
+        serial_putc('\r');
     }
     
     for (uint32_t timeout = 0; timeout < 100000; ++timeout) {

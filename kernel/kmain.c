@@ -1,18 +1,17 @@
 // kernel/kmain.c
 #include <stdint.h>
+#include "arch/x86/gdt.h"
+#include "arch/x86/idt.h"
 #include "kernel/console.h"
+#include "kernel/panic.h"
 
 #define MULTIBOOT_BOOTLOADER_MAGIC 0x2BADB002u
 
 extern const console_driver_t serial_console_driver;
 extern const console_driver_t vga_text_console_driver;
 
-static void halt_forever(void) {
-    for (;;) {
-        __asm__ volatile ("hlt");
-    }
-}
 
+// Removed code here
 
 void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     console_register(&serial_console_driver);
@@ -22,7 +21,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     console_writeln("Toyix kernel alive!");
     
     if (multiboot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-        console_write("Boot protocol: Multiboot OK");
+        console_writeln("Boot protocol: Multiboot OK");
     } else {
         console_write("Boot protocol: unexpected magic ");
         console_write_hex32(multiboot_magic);
@@ -33,10 +32,21 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     console_write_hex32(multiboot_info_addr);
     console_putc('\n');
     
-    console_writeln("Console drivers: serial + VGA text");
-    console_writeln("Next stop: GDT, IDT, memory map, heap.");
+    // Added GDT / IDT table init calls
+    gdt_init();
+    idt_init();
     
-    halt_forever();
+    console_writeln("Descriptor tables: ready");
+    
+#ifdef TOYIX_TRIGGER_TEST_EXCEPTION
+    console_writeln("Triggering test exception with UD2...");
+    __asm__ volatile ("ud2");
+#endif
+    
+    console_writeln("Kernel survived early CPU setup.");
+    console_writeln("Next stop: PIC remap, time IRQ, keyboard IRQ.");
+    
+    kernel_halt();
 }
 
 

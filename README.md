@@ -4,9 +4,9 @@
 [![Release](https://github.com/Monotoba/toyix/actions/workflows/release.yml/badge.svg)](https://github.com/Monotoba/toyix/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
-[![Tests](https://img.shields.io/badge/test%20coverage-boot%20smoke-blue.svg)](tests/smoke.sh)
+[![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20exception%20smoke-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, and verifies the boot log through an automated QEMU smoke test.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, and verifies boot and exception handling through automated QEMU smoke tests.
 
 <p>
   <img src="docs/assets/toyix-preview.png" alt="Toyix preview" width="360">
@@ -19,7 +19,11 @@ Toyix is a small Linux-style teaching operating system written in C and x86 asse
 - Linker script placing the kernel at 1 MiB
 - Serial console driver for automated test capture
 - VGA text console driver for emulator output
-- QEMU smoke test that checks the boot log
+- Flat ring-0 Global Descriptor Table setup
+- Interrupt Descriptor Table entries for CPU exceptions 0-31
+- Assembly ISR stubs with a shared C exception handler
+- Kernel panic path for unrecoverable CPU exceptions
+- QEMU smoke tests for boot and deliberate invalid-opcode exception handling
 - GitHub Actions CI for build and smoke test validation
 
 ## Repository Layout
@@ -42,6 +46,7 @@ The build expects an i686 ELF cross-compiler toolchain and common OS development
 - `nasm`
 - `grub-file`
 - `grub-mkrescue`
+- `mtools`
 - `qemu-system-i386`
 
 The CI workflow builds the cross-compiler toolchain before running the project tests.
@@ -72,21 +77,27 @@ make run
 make test
 ```
 
-or:
+Run the full local smoke suite:
 
 ```sh
 tests/smoke.sh
 ```
 
-The smoke test builds the ISO, boots it under QEMU, captures serial output, and verifies the expected kernel messages.
+Run only the deliberate CPU exception test:
+
+```sh
+make test-exception
+```
+
+The smoke suite builds the ISO, boots it under QEMU, captures serial output, verifies the expected early kernel messages, then rebuilds with a test-only invalid instruction path to verify CPU exception reporting and the panic halt path.
 
 ## Documentation
 
 - [Series introduction](index.md)
 - [Chapter 1](articles/chapter_01.md)
+- [Chapter 2](articles/chapter_02.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License
 
 Toyix is released under the MIT License. See [LICENSE](LICENSE).
-

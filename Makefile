@@ -18,7 +18,8 @@ CFLAGS := -std=gnu11 \
           -fno-pic \
           -fno-pie \
           -Iinclude \
-          -I.
+          -I.\
+          $(CFLAGS_EXTRA)
 
 LDFLAGS := -T linker.ld \
            -ffreestanding \
@@ -28,17 +29,23 @@ LDFLAGS := -T linker.ld \
 
 OBJS := \
     build/arch/x86/boot.o \
+    build/arch/x86/gdt.o \
+    build/arch/x86/gdt_flush.o \
+    build/arch/x86/idt.o \
+    build/arch/x86/interrupts.o \
+    build/arch/x86/isr.o \
     build/kernel/kmain.o \
     build/kernel/console.o \
+    build/kernel/panic.o \
     build/kernel/lib/mem.o \
     build/drivers/console/serial.o \
     build/drivers/console/vga_text.o
 
-.PHONY: all clean iso run test
+.PHONY: all clean iso run test test-exception
 
 all: build/kernel.elf
 
-build/arch/x86/boot.o: arch/x86/boot.asm
+build/%.o: %.asm
 	@mkdir -p $(dir $@)
 	$(AS) -f elf32 $< -o $@
 
@@ -61,16 +68,48 @@ run: iso
 test: iso
 	$(GRUB_FILE) --is-x86-multiboot build/kernel.elf
 	@mkdir -p build
+	@rm -f build/test.log build/qemu-test.err
 	@timeout 5s $(QEMU) \
+		-boot d \
 		-cdrom build/toyix.iso \
-		-serial stdio \
 		-display none \
 		-monitor none \
+		-serial file:build/test.log \
 		-no-reboot \
-		> build/test.log || true
+		2> build/qemu-test.err || true
+	@echo "---- serial log ----"
+	@cat build/test.log || true
+	@echo "---- qemu stderr ----"
+	@cat build/qemu-test.err || true
 	grep -q "Toyix kernel alive" build/test.log
 	grep -q "Boot protocol: Multiboot OK" build/test.log
-	@echo "Smoke test passed."
+	grep -q "GDT: installed flat kernel code/data segments" build/test.log
+	grep -q "IDT: installed CPU exception handlers" build/test.log
+	grep -q "Kernel survived early CPU setup." build/test.log
+	@echo "Boot smoke test passed."
+	
+test-exception:
+	$(MAKE) clean
+	$(MAKE) iso CFLAGS_EXTRA=-DTOYIX_TRIGGER_TEST_EXCEPTION
+	@mkdir -p build
+	@rm -f build/exception.log build/qemu-exception.err
+	@timeout 5s $(QEMU) \
+		-boot d \
+		-cdrom build/toyix.iso \
+		-display none \
+		-monitor none \
+		-serial file:build/exception.log \
+		-no-reboot \
+		2> build/qemu-exception.err || true
+	@echo "---- exception serial log ----"
+	@cat build/exception.log || true
+	@echo "---- qemu exception stderr ----"
+	@cat build/qemu-exception.err || true
+	grep -q "Triggering test exception with UD2" build/exception.log
+	grep -q "CPU EXCEPTION" build/exception.log
+	grep -q "Invalid Opcode" build/exception.log
+	grep -q "KERNEL PANIC" build/exception.log
+	@echo "Exception handling test passed."
 
 clean:
 	rm -rf build
