@@ -17,7 +17,7 @@ jobs:
       - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential bison flex libgmp3-dev libmpc-dev libmpfr-dev nasm grub-pc-bin xorriso texinfo wget
+          sudo apt-get install -y build-essential bison flex libgmp3-dev libmpc-dev libmpfr-dev mtools nasm grub-pc-bin xorriso texinfo wget
 
       - name: Cache cross toolchain
         id: cache-cross
@@ -61,4 +61,3 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: build/toyix.iso
-
