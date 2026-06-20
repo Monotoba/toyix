@@ -4,6 +4,8 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_02] - 2026-06-20
+
 - Add Chapter 2 GDT, IDT, CPU exception handling, and panic path.
 - Add boot and exception smoke coverage for the Chapter 2 kernel.
 
