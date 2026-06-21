@@ -34,12 +34,17 @@ OBJS := \
     build/arch/x86/idt.o \
     build/arch/x86/interrupts.o \
     build/arch/x86/isr.o \
+    build/arch/x86/irq.o \
+    build/arch/x86/pic.o \
+    build/arch/x86/pit.o \
     build/kernel/kmain.o \
     build/kernel/console.o \
+    build/kernel/idle.o \
     build/kernel/panic.o \
     build/kernel/lib/mem.o \
     build/drivers/console/serial.o \
-    build/drivers/console/vga_text.o
+    build/drivers/console/vga_text.o \
+    build/drivers/input/keyboard.o
 
 .PHONY: all clean iso run test test-exception
 
@@ -85,8 +90,12 @@ test: iso
 	grep -q "Boot protocol: Multiboot OK" build/test.log
 	grep -q "GDT: installed flat kernel code/data segments" build/test.log
 	grep -q "IDT: installed CPU exception handlers" build/test.log
-	grep -q "Kernel survived early CPU setup." build/test.log
-	@echo "Boot smoke test passed."
+	grep -q "PIC: remapped IRQs to vectors 0x20-0x2F" build/test.log
+	grep -q "PIT: timer running at" build/test.log
+	grep -q "Keyboard: IRQ1 handler installed" build/test.log
+	grep -q "Interrupts: enabled" build/test.log
+	grep -q "Timer: observed 3 ticks" build/test.log
+	@echo "Boot and IRQ smoke test passed."
 	
 test-exception:
 	$(MAKE) clean

@@ -15,4 +15,10 @@ static inline uint8_t inb(uint16_t port) {
     return value;
 }
 
+
+static inline void io_wait(void) {
+	outb(0x80, 0);  // delay's by the time it takes to complete an io-write.
+}
+
+
 #endif

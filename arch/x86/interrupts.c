@@ -1,8 +1,13 @@
 // arch/x86/interrupts.c
+#include <stddef.h>
 #include <stdint.h>
 #include "arch/x86/interrupts.h"
+#include "arch/x86/pic.h"
 #include "kernel/console.h"
 #include "kernel/panic.h"
+
+
+static interrupt_handler_t interrupt_handlers[256];
 
 
 static const char *const exception_names[32] = {
@@ -39,6 +44,28 @@ static const char *const exception_names[32] = {
     "Reserved",
     "Reserved"
 };
+
+
+
+int interrupt_register_handler(uint8_t vector, interrupt_handler_t handler) {
+	interrupt_handlers[vector] = handler;
+	return 0;
+}
+
+
+void interrupts_enable(void) {
+	__asm__ volatile ("sti");
+}
+
+
+void interrupts_disable(void) {
+	__asm__ volatile ("cli");
+}
+
+
+void interrupts_wait(void) {
+	__asm__ volatile ("hlt");
+} 
 
 
 static void print_register(const char *name, uint32_t value) {
@@ -92,4 +119,26 @@ void isr_handler(interrupt_frame_t *frame) {
     }
     
     kernel_panic("unhandled CPU exception");
+}
+
+
+void irq_handler(interrupt_frame_t *frame) {
+	if (frame == NULL) {
+		kernel_panic("null IRQ frame");
+	}
+	
+	uint32_t vector = frame->interrupt_number;
+	
+	if (vector >= 32 && vector <= 47) {
+		if (interrupt_handlers[vector] != NULL) {
+			interrupt_handlers[vector] (frame);
+		}
+		
+		pic_send_eoi((uint8_t) (vector - 32));
+		return;
+	}
+	
+	console_write("Unexpected IRQ vector ");
+	console_write_hex32(vector);
+	console_putc('\n');
 }

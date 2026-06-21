@@ -61,6 +61,25 @@ extern void isr30(void);
 extern void isr31(void);
 
 
+extern void irq0(void);
+extern void irq1(void);
+extern void irq2(void);
+extern void irq3(void);
+extern void irq4(void);
+extern void irq5(void);
+extern void irq6(void);
+extern void irq7(void);
+extern void irq8(void);
+extern void irq9(void);
+extern void irq10(void);
+extern void irq11(void);
+extern void irq12(void);
+extern void irq13(void);
+extern void irq14(void);
+extern void irq15(void);
+
+
+
 static void idt_load(uint32_t idt_pointer_addr) {
     __asm__ volatile ("lidt (%0)" : : "r"(idt_pointer_addr));
 }
@@ -92,6 +111,14 @@ void idt_init(void) {
         isr28,  isr29,  isr30,  isr31
     };
     
+    void (*irq_stubs[16]) (void) = {
+    	irq0,	irq1,	irq2, 	irq3,
+    	irq4,	irq5,	irq6,	irq7,
+    	irq8,	irq9,	irq10,	irq11,
+    	irq12,	irq13,	irq14,	irq15
+    };
+    
+    
     idt_ptr.limit = (uint16_t)(sizeof(idt) -1);
     idt_ptr.base = (uint32_t) &idt[0];
     
@@ -113,6 +140,17 @@ void idt_init(void) {
             0x8Eu
         );
     }
+    
+    
+    for (uint8_t i = 0; i < 16; ++i) {
+    	idt_set_gate(
+    		(uint8_t) (32 + i),
+    		(uint32_t)irq_stubs[i],
+    		X86_KERNEL_CODE_SELECTOR,
+    		0x8Eu
+    	);
+    }
+    
     
     idt_load((uint32_t) & idt_ptr);
     

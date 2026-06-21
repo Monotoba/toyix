@@ -24,8 +24,18 @@ typedef struct interrupt_frame {
     uint32_t eflags;
 } interrupt_frame_t;
 
+typedef void (*interrupt_handler_t)(interrupt_frame_t * frame);
 
 void isr_handler(interrupt_frame_t *frame);
+void irq_handler(interrupt_frame_t *frame);
+
+
+int interrupt_register_handler(uint8_t vector, interrupt_handler_t handler);
+
+
+void interrupts_enable(void);
+void interrupts_disable(void);
+void interrupts_wait(void);
 
 
 #endif

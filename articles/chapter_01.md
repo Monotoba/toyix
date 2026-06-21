@@ -1034,3 +1034,15 @@ The next technical milestone should be **GDT + IDT + exception handling**. Until
 [2]: https://www.gnu.org/software/grub/manual/multiboot/html_node/Header-magic-fields.html "Multiboot Specification version 0.6.96: Header magic fields"
 [3]: https://gcc.gnu.org/onlinedocs/gcc/Standards.html "Standards (Using the GNU Compiler Collection (GCC))"
 
+---
+
+# Resources
+
+- [Chapter 01 release](https://github.com/Monotoba/toyix/releases/tag/Chapter_01)
+- [OSDev Bare Bones tutorial](https://wiki.osdev.org/Bare_Bones)
+- [GNU Multiboot header magic fields](https://www.gnu.org/software/grub/manual/multiboot/html_node/Header-magic-fields.html)
+- [GCC language standards and freestanding environments](https://gcc.gnu.org/onlinedocs/gcc/Standards.html)
+
+That completes the first Toyix milestone: a bootable kernel with serial output, VGA text output, and an automated smoke test.
+
+Happy Coding!

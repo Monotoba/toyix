@@ -3,7 +3,7 @@
 #include "kernel/panic.h"
 
 
-void kernel_halt(void) {
+_Noreturn void kernel_halt(void) {
     __asm__ volatile ("cli");  // clear interrupt flag
     
     for (;;) {
@@ -24,3 +24,4 @@ void kernel_panic(const char *message) {
     console_writeln("System halted.");
     kernel_halt();
 }
+

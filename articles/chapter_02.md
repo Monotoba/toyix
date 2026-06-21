@@ -1401,7 +1401,20 @@ exceptions + hardware IRQs
 
 Once we have timer interrupts, we can build toward scheduling. Once we have keyboard input, we can build toward a primitive kernel monitor.
 
-[1]: https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html?utm_source=chatgpt.com "Manuals for Intel® 64 and IA-32 Architectures"
-[2]: https://wiki.osdev.org/Global_Descriptor_Table?utm_source=chatgpt.com "Global Descriptor Table"
-[3]: https://wiki.osdev.org/Interrupts_Tutorial?utm_source=chatgpt.com "Interrupts Tutorial"
+[1]: https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html "Manuals for Intel® 64 and IA-32 Architectures"
+[2]: https://wiki.osdev.org/Global_Descriptor_Table "Global Descriptor Table"
+[3]: https://wiki.osdev.org/Interrupts_Tutorial "Interrupts Tutorial"
 
+---
+
+# Resources
+
+- [Chapter 02 release](https://github.com/Monotoba/toyix/releases/tag/Chapter_02)
+- [Intel 64 and IA-32 Architectures Software Developer Manuals](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
+- [OSDev Global Descriptor Table](https://wiki.osdev.org/Global_Descriptor_Table)
+- [OSDev Interrupts Tutorial](https://wiki.osdev.org/Interrupts_Tutorial)
+- [OSDev Interrupt Descriptor Table](https://wiki.osdev.org/Interrupt_Descriptor_Table)
+
+That completes the second Toyix milestone: descriptor tables, CPU exception handling, and a panic path that gives us useful crash evidence.
+
+Happy Coding!
