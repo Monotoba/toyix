@@ -1040,6 +1040,7 @@ The next technical milestone should be **GDT + IDT + exception handling**. Until
 
 - [Chapter 01 release](https://github.com/Monotoba/toyix/releases/tag/Chapter_01)
 - [OSDev Bare Bones tutorial](https://wiki.osdev.org/Bare_Bones)
+- [GNU GRUB Multiboot Specification](https://www.gnu.org/software/grub/manual/multiboot/multiboot.html)
 - [GNU Multiboot header magic fields](https://www.gnu.org/software/grub/manual/multiboot/html_node/Header-magic-fields.html)
 - [GCC language standards and freestanding environments](https://gcc.gnu.org/onlinedocs/gcc/Standards.html)
 
