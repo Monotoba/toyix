@@ -1329,6 +1329,21 @@ kernel heap
 
 Right now, the PMM can give us physical pages. The next chapter teaches the CPU how to map those pages into virtual memory.
 
-[1]: https://www.gnu.org/software/grub/manual/multiboot/multiboot.txt?utm_source=chatgpt.com "GRUB Multiboot Specification"
-[2]: https://wiki.osdev.org/Page_Frame_Allocation?utm_source=chatgpt.com "Page Frame Allocation"
-[3]: https://wiki.osdev.org/Memory_Map_%28x86%29?utm_source=chatgpt.com "Memory Map (x86) - OSDev Wiki"
+[1]: https://www.gnu.org/software/grub/manual/multiboot/multiboot.txt "GRUB Multiboot Specification"
+[2]: https://wiki.osdev.org/Page_Frame_Allocation "Page Frame Allocation"
+[3]: https://wiki.osdev.org/Memory_Map_%28x86%29 "Memory Map (x86) - OSDev Wiki"
+
+---
+
+# Resources
+
+- [Chapter 04 release](https://github.com/Monotoba/toyix/releases/tag/Chapter_04)
+- [GNU GRUB Multiboot Specification](https://www.gnu.org/software/grub/manual/multiboot/multiboot.txt)
+- [OSDev Page Frame Allocation](https://wiki.osdev.org/Page_Frame_Allocation)
+- [OSDev x86 Memory Map](https://wiki.osdev.org/Memory_Map_%28x86%29)
+- [OSDev Memory Management](https://wiki.osdev.org/Memory_Management)
+- [OSDev Detecting Memory](https://wiki.osdev.org/Detecting_Memory_%28x86%29)
+
+That completes the fourth Toyix milestone: reading the Multiboot memory map and allocating physical 4 KiB page frames.
+
+Happy Coding!
