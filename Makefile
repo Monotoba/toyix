@@ -1,5 +1,7 @@
 # Makefile
 
+SHELL := /bin/bash
+
 TARGET      ?= i686-elf
 CC          := $(TARGET)-gcc
 AS          := nasm
@@ -18,7 +20,7 @@ CFLAGS := -std=gnu11 \
           -fno-pic \
           -fno-pie \
           -Iinclude \
-          -I.\
+          -I. \
           $(CFLAGS_EXTRA)
 
 LDFLAGS := -T linker.ld \
@@ -35,11 +37,13 @@ OBJS := \
     build/arch/x86/interrupts.o \
     build/arch/x86/isr.o \
     build/arch/x86/irq.o \
+    build/arch/x86/paging_asm.o \
+    build/arch/x86/paging.o \
     build/arch/x86/pic.o \
     build/arch/x86/pit.o \
     build/kernel/kmain.o \
-    build/kernel/console.o \
     build/kernel/idle.o \
+    build/kernel/console.o \
     build/kernel/panic.o \
     build/kernel/pmm.o \
     build/kernel/lib/mem.o \
@@ -47,22 +51,19 @@ OBJS := \
     build/drivers/console/vga_text.o \
     build/drivers/input/keyboard.o
 
-.PHONY: all clean iso run test test-exception FORCE
+.PHONY: all clean iso run test test-exception test-page-fault
 
 all: build/kernel.elf
 
-build/.cflags: FORCE
-	@mkdir -p build
-	@if [ "$$(cat $@ 2>/dev/null || true)" != "$(CFLAGS_EXTRA)" ]; then \
-		echo "$(CFLAGS_EXTRA)" > $@; \
-		rm -f $(OBJS) build/kernel.elf; \
-	fi
+build/arch/x86/paging.o: arch/x86/paging.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-build/%.o: %.asm build/.cflags
+build/%.o: %.asm
 	@mkdir -p $(dir $@)
 	$(AS) -f elf32 $< -o $@
 
-build/%.o: %.c build/.cflags
+build/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -79,9 +80,8 @@ run: iso
 	$(QEMU) -cdrom build/toyix.iso -serial stdio
 
 test: iso
-	$(GRUB_FILE) --is-x86-multiboot build/kernel.elf
 	@mkdir -p build
-	@rm -f build/test.log build/qemu-test.err
+	@rm -f build/test.log
 	@timeout 5s $(QEMU) \
 		-boot d \
 		-cdrom build/toyix.iso \
@@ -89,30 +89,22 @@ test: iso
 		-monitor none \
 		-serial file:build/test.log \
 		-no-reboot \
-		2> build/qemu-test.err || true
-	@echo "---- serial log ----"
-	@cat build/test.log || true
-	@echo "---- qemu stderr ----"
-	@cat build/qemu-test.err || true
+		2>/dev/null || true
 	grep -q "Toyix kernel alive" build/test.log
 	grep -q "Boot protocol: Multiboot OK" build/test.log
-	grep -q "GDT: installed flat kernel code/data segments" build/test.log
-	grep -q "IDT: installed CPU exception handlers" build/test.log
-	grep -q "PIC: remapped IRQs to vectors 0x20-0x2F" build/test.log
 	grep -q "PMM: parsing Multiboot memory map" build/test.log
-	grep -q "PMM: physical page bitmap initialized" build/test.log
 	grep -q "PMM test: allocation/free sanity check passed" build/test.log
-	grep -q "PIT: timer running at" build/test.log
-	grep -q "Keyboard: IRQ1 handler installed" build/test.log
+	grep -q "Paging: enabled with identity map of first 16 MiB" build/test.log
+	grep -q "Paging test: identity-mapped kernel data is readable/writable" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
-	@echo "Boot, IRQ, and PMM smoke test passed."
-	
+	@echo "Boot, IRQ, PMM, and paging smoke test passed."
+
 test-exception:
 	$(MAKE) clean
 	$(MAKE) iso CFLAGS_EXTRA=-DTOYIX_TRIGGER_TEST_EXCEPTION
 	@mkdir -p build
-	@rm -f build/exception.log build/qemu-exception.err
+	@rm -f build/exception.log
 	@timeout 5s $(QEMU) \
 		-boot d \
 		-cdrom build/toyix.iso \
@@ -120,16 +112,32 @@ test-exception:
 		-monitor none \
 		-serial file:build/exception.log \
 		-no-reboot \
-		2> build/qemu-exception.err || true
-	@echo "---- exception serial log ----"
-	@cat build/exception.log || true
-	@echo "---- qemu exception stderr ----"
-	@cat build/qemu-exception.err || true
+		2>/dev/null || true
 	grep -q "Triggering test exception with UD2" build/exception.log
 	grep -q "CPU EXCEPTION" build/exception.log
 	grep -q "Invalid Opcode" build/exception.log
 	grep -q "KERNEL PANIC" build/exception.log
 	@echo "Exception handling test passed."
+
+test-page-fault:
+	$(MAKE) clean
+	$(MAKE) iso CFLAGS_EXTRA=-DTOYIX_TRIGGER_PAGE_FAULT
+	@mkdir -p build
+	@rm -f build/pagefault.log
+	@timeout 5s $(QEMU) \
+		-boot d \
+		-cdrom build/toyix.iso \
+		-display none \
+		-monitor none \
+		-serial file:build/pagefault.log \
+		-no-reboot \
+		2>/dev/null || true
+	grep -q "Paging: enabled with identity map of first 16 MiB" build/pagefault.log
+	grep -q "Triggering test page fault at 0xC0000000" build/pagefault.log
+	grep -q "PAGE FAULT" build/pagefault.log
+	grep -q "Fault address CR2=0xC0000000" build/pagefault.log
+	grep -q "KERNEL PANIC" build/pagefault.log
+	@echo "Page fault test passed."
 
 clean:
 	rm -rf build

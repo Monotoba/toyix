@@ -77,6 +77,11 @@ static void print_register(const char *name, uint32_t value) {
 
 
 void isr_handler(interrupt_frame_t *frame) {
+    if (interrupt_handlers[frame->interrupt_number] != NULL) {
+        interrupt_handlers[frame->interrupt_number](frame);
+        return;
+    }
+	
     console_writeln("");
     console_writeln("*** CPU EXCEPTION ***");
     
