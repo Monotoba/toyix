@@ -237,6 +237,69 @@ uintptr_t pmm_alloc_page(void) {
     return PMM_INVALID_PAGE;
 }
 
+
+uintptr_t pmm_alloc_page_below(uintptr_t max_exclusive) {
+	uint32_t max_frame = (uint32_t)(max_exclusive / PMM_PAGE_SIZE);
+	
+	if (max_frame > PMM_MAX_FRAMES) {
+		max_frame = PMM_MAX_FRAMES;
+	}
+	
+	for (uint32_t frame = 256; frame < max_frame; ++frame) {
+		if (!bitmap_test(frame)) {
+			mark_frame_used(frame);
+			return addr_from_frame_index(frame);
+		}
+	}
+	
+	return PMM_INVALID_PAGE;
+}
+
+
+
+uintptr_t pmm_alloc_contiguous_pages_below(
+	uint32_t page_count,
+	uintptr_t max_exclusive
+) {
+	if (page_count == 0) {
+		return PMM_INVALID_PAGE;
+	}
+	
+	uint32_t max_frame = (uint32_t)(max_exclusive / PMM_PAGE_SIZE);
+	
+	if (max_frame > PMM_MAX_FRAMES) {
+		max_frame = PMM_MAX_FRAMES;
+	}
+	
+	uint32_t run_start = 0;
+	uint32_t run_length = 0;
+	
+	for (uint32_t frame = 256; frame < max_frame; ++frame) {
+		if (!bitmap_test(frame)) {
+			if (run_length == 0) {
+				run_start = frame;
+			}
+			
+			run_length++;
+			
+			if (run_length == page_count) {
+				for (uint32_t i = 0; i < page_count; ++i) {
+					mark_frame_used(run_start + i);
+				}
+				
+				return addr_from_frame_index(run_start);
+			}
+		} else {
+			run_start = 0;
+			run_length = 0;
+		}
+	}
+	
+	return PMM_INVALID_PAGE;
+}
+
+
+
 void pmm_free_page(uintptr_t physical_addr) {
     if ((physical_addr & (PMM_PAGE_SIZE - 1u)) != 0) {
         kernel_panic("pmm_free_page received unaligned address");

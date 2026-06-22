@@ -8,7 +8,6 @@
 #define PMM_PAGE_SIZE 4096u
 #define PMM_INVALID_PAGE 0u
 
-
 typedef struct pmm_stats {
 	uint32_t total_frames;
 	uint32_t usable_frames;
@@ -21,11 +20,16 @@ typedef struct pmm_stats {
 void pmm_init(const multiboot_info_t * mbi);
 
 uintptr_t pmm_alloc_page(void);
+uintptr_t pmm_alloc_page_below(uintptr_t max_exclusive);
+uintptr_t pmm_alloc_contiguous_pages_below(
+	uint32_t page_count,
+	uintptr_t max_exclusive
+);
+
 void pmm_free_page(uintptr_t physical_addr);
 
 pmm_stats_t pmm_get_stats(void);
 void pmm_dump_stats(void);
 void pmm_test_once(void);
-
 
 #endif

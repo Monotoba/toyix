@@ -1,4 +1,4 @@
-// kernel/idle.h
+// include/kernel/idle.h
 #ifndef TOYIX_KERNEL_IDLE_H
 #define TOYIX_KERNEL_IDLE_H
 
