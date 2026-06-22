@@ -433,14 +433,6 @@ void paging_init(void) {
 
     interrupt_register_handler(14, page_fault_handler);
 
-    /*
-     * Because paging is currently disabled and our linker places the kernel
-     * at physical 1 MiB, the address of page_directory is both its current
-     * linear address and physical address.
-     *
-     * This remains valid immediately after paging is enabled because the
-     * first 16 MiB are identity-mapped.
-     */
     paging_load_directory((uint32_t)&page_directory[0]);
     paging_enable_asm();
 
@@ -546,6 +538,21 @@ Before enabling paging, we register:
 ```c
 interrupt_register_handler(14, page_fault_handler);
 ```
+
+This relies on `isr_handler()` dispatching registered exception handlers before it falls back to the generic CPU-exception dump:
+
+```c
+void isr_handler(interrupt_frame_t *frame) {
+    if (interrupt_handlers[frame->interrupt_number] != NULL) {
+        interrupt_handlers[frame->interrupt_number](frame);
+        return;
+    }
+
+    /* generic exception reporting follows */
+}
+```
+
+That matters because page faults are CPU exceptions, not hardware IRQs. Without this dispatch path, vector `14` would always use the generic exception handler and the paging-specific diagnostics would never run.
 
 When a page fault occurs, the CPU stores the faulting linear address in `CR2`. Intel documents `CR2` as the page-fault linear-address register, and the page-fault exception includes an error code describing the access that faulted. ([Intel][3])
 
@@ -703,6 +710,8 @@ Here is the full updated Makefile:
 ```make
 # Makefile
 
+SHELL := /bin/bash
+
 TARGET      ?= i686-elf
 CC          := $(TARGET)-gcc
 AS          := nasm
@@ -776,23 +785,21 @@ iso: build/kernel.elf grub.cfg
 	cp build/kernel.elf build/iso/boot/kernel.elf
 	cp grub.cfg build/iso/boot/grub/grub.cfg
 	$(GRUB_MKRESCUE) -o build/toyix.iso build/iso
-	
-clean:
-	rm -rf build
 
 run: iso
 	$(QEMU) -cdrom build/toyix.iso -serial stdio
 
 test: iso
-	$(GRUB_FILE) --is-x86-multiboot build/kernel.elf
 	@mkdir -p build
+	@rm -f build/test.log
 	@timeout 5s $(QEMU) \
-	    -cdrom build/toyix.iso \
-	    -serial stdio \
-	    -display none \
-	    -monitor none \
-	    -no-reboot \
-	    > build/test.log 2>&1 || true
+		-boot d \
+		-cdrom build/toyix.iso \
+		-display none \
+		-monitor none \
+		-serial file:build/test.log \
+		-no-reboot \
+		2>/dev/null || true
 	grep -q "Toyix kernel alive" build/test.log
 	grep -q "Boot protocol: Multiboot OK" build/test.log
 	grep -q "PMM: parsing Multiboot memory map" build/test.log
@@ -807,13 +814,15 @@ test-exception:
 	$(MAKE) clean
 	$(MAKE) iso CFLAGS_EXTRA=-DTOYIX_TRIGGER_TEST_EXCEPTION
 	@mkdir -p build
+	@rm -f build/exception.log
 	@timeout 5s $(QEMU) \
-	    -cdrom build/toyix.iso \
-	    -serial stdio \
-	    -display none \
-	    -monitor none \
-	    -no-reboot \
-	    > build/exception.log 2>&1 || true
+		-boot d \
+		-cdrom build/toyix.iso \
+		-display none \
+		-monitor none \
+		-serial file:build/exception.log \
+		-no-reboot \
+		2>/dev/null || true
 	grep -q "Triggering test exception with UD2" build/exception.log
 	grep -q "CPU EXCEPTION" build/exception.log
 	grep -q "Invalid Opcode" build/exception.log
@@ -824,19 +833,24 @@ test-page-fault:
 	$(MAKE) clean
 	$(MAKE) iso CFLAGS_EXTRA=-DTOYIX_TRIGGER_PAGE_FAULT
 	@mkdir -p build
+	@rm -f build/pagefault.log
 	@timeout 5s $(QEMU) \
-	    -cdrom build/toyix.iso \
-	    -serial stdio \
-	    -display none \
-	    -monitor none \
-	    -no-reboot \
-	    > build/pagefault.log 2>&1 || true
+		-boot d \
+		-cdrom build/toyix.iso \
+		-display none \
+		-monitor none \
+		-serial file:build/pagefault.log \
+		-no-reboot \
+		2>/dev/null || true
 	grep -q "Paging: enabled with identity map of first 16 MiB" build/pagefault.log
 	grep -q "Triggering test page fault at 0xC0000000" build/pagefault.log
 	grep -q "PAGE FAULT" build/pagefault.log
 	grep -q "Fault address CR2=0xC0000000" build/pagefault.log
 	grep -q "KERNEL PANIC" build/pagefault.log
 	@echo "Page fault test passed."
+
+clean:
+	rm -rf build
 ```
 
 ---

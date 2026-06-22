@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_05] - 2026-06-22
+
+- Add initial 32-bit x86 paging support with identity mapping for the first 16 MiB.
+- Add CR0, CR2, and CR3 assembly helpers for paging setup and diagnostics.
+- Add page-fault handling through the registered interrupt-handler dispatch path.
+- Add paging boot checks and a deliberate page-fault test target.
+- Update Chapter 5 documentation for the current paging implementation and test commands.
+
 ## [Chapter_04] - 2026-06-21
 
 - Add Multiboot memory map parsing.

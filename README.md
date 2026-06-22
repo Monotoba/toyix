@@ -4,9 +4,9 @@
 [![Release](https://github.com/Monotoba/toyix/actions/workflows/release.yml/badge.svg)](https://github.com/Monotoba/toyix/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
-[![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20IRQ%20%2B%20PMM%20%2B%20exception%20smoke-blue.svg)](tests/smoke.sh)
+[![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20IRQ%20%2B%20PMM%20%2B%20paging%20%2B%20exception-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, and verifies boot behavior through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, and verifies boot behavior through automated QEMU smoke tests.
 
 <p>
   <img src="docs/assets/toyix-preview.png" alt="Toyix preview" width="360">
@@ -29,7 +29,11 @@ Toyix is a small Linux-style teaching operating system written in C and x86 asse
 - Multiboot memory map parsing
 - Bitmap-backed physical page allocator for 4 KiB frames
 - PMM allocation/free sanity test during boot
-- QEMU smoke tests for boot, IRQ setup, timer ticks, PMM setup, and deliberate invalid-opcode exception handling
+- Identity-mapped 32-bit x86 paging for the first 16 MiB
+- CR0, CR2, and CR3 helpers for paging setup and diagnostics
+- Page-fault handler with CR2 fault-address reporting
+- Paging sanity test during normal boot
+- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
 ## Repository Layout
@@ -50,7 +54,6 @@ The build expects an i686 ELF cross-compiler toolchain and common OS development
 
 - `i686-elf-gcc`
 - `nasm`
-- `grub-file`
 - `grub-mkrescue`
 - `mtools`
 - `qemu-system-i386`
@@ -95,7 +98,13 @@ Run only the deliberate CPU exception test:
 make test-exception
 ```
 
-The smoke suite builds the ISO, boots it under QEMU, captures serial output, verifies the expected early kernel, IRQ, and PMM messages, then rebuilds with a test-only invalid instruction path to verify CPU exception reporting and the panic halt path.
+Run only the deliberate page-fault test:
+
+```sh
+make test-page-fault
+```
+
+The smoke suite builds the ISO, boots it under QEMU, captures serial output, verifies the expected early kernel, IRQ, PMM, and paging messages, then rebuilds with a test-only invalid instruction path to verify CPU exception reporting and the panic halt path. The page-fault target separately rebuilds with a test-only unmapped memory access to verify page-fault reporting and the panic halt path.
 
 ## Documentation
 
@@ -104,6 +113,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 2](articles/chapter_02.md)
 - [Chapter 3](articles/chapter_03.md)
 - [Chapter 4](articles/chapter_04.md)
+- [Chapter 5](articles/chapter_05.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License
