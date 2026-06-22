@@ -17,6 +17,7 @@ void console_putc(char c);
 void console_write(const char *text);
 void console_writeln(const char *text);
 void console_write_hex32(uint32_t value);
+void console_write_u32_dec(uint32_t value);
 
 #endif
 

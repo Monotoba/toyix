@@ -402,10 +402,10 @@ The Multiboot memory map is a buffer of variable-sized entries. Each entry begin
 
 ---
 
-# 8. Add `include/kernel/pmm.h`
+# 8. Add `kernel/pmm.h`
 
 ```c
-// include/kernel/pmm.h
+// kernel/pmm.h
 #ifndef TOYIX_KERNEL_PMM_H
 #define TOYIX_KERNEL_PMM_H
 
@@ -983,15 +983,22 @@ OBJS := \
     build/drivers/console/vga_text.o \
     build/drivers/input/keyboard.o
 
-.PHONY: all clean iso run test test-exception
+.PHONY: all clean iso run test test-exception FORCE
 
 all: build/kernel.elf
 
-build/%.o: %.asm
+build/.cflags: FORCE
+	@mkdir -p build
+	@if [ "$$(cat $@ 2>/dev/null || true)" != "$(CFLAGS_EXTRA)" ]; then \
+		echo "$(CFLAGS_EXTRA)" > $@; \
+		rm -f $(OBJS) build/kernel.elf; \
+	fi
+
+build/%.o: %.asm build/.cflags
 	@mkdir -p $(dir $@)
 	$(AS) -f elf32 $< -o $@
 
-build/%.o: %.c
+build/%.o: %.c build/.cflags
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 

@@ -41,20 +41,28 @@ OBJS := \
     build/kernel/console.o \
     build/kernel/idle.o \
     build/kernel/panic.o \
+    build/kernel/pmm.o \
     build/kernel/lib/mem.o \
     build/drivers/console/serial.o \
     build/drivers/console/vga_text.o \
     build/drivers/input/keyboard.o
 
-.PHONY: all clean iso run test test-exception
+.PHONY: all clean iso run test test-exception FORCE
 
 all: build/kernel.elf
 
-build/%.o: %.asm
+build/.cflags: FORCE
+	@mkdir -p build
+	@if [ "$$(cat $@ 2>/dev/null || true)" != "$(CFLAGS_EXTRA)" ]; then \
+		echo "$(CFLAGS_EXTRA)" > $@; \
+		rm -f $(OBJS) build/kernel.elf; \
+	fi
+
+build/%.o: %.asm build/.cflags
 	@mkdir -p $(dir $@)
 	$(AS) -f elf32 $< -o $@
 
-build/%.o: %.c
+build/%.o: %.c build/.cflags
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -91,11 +99,14 @@ test: iso
 	grep -q "GDT: installed flat kernel code/data segments" build/test.log
 	grep -q "IDT: installed CPU exception handlers" build/test.log
 	grep -q "PIC: remapped IRQs to vectors 0x20-0x2F" build/test.log
+	grep -q "PMM: parsing Multiboot memory map" build/test.log
+	grep -q "PMM: physical page bitmap initialized" build/test.log
+	grep -q "PMM test: allocation/free sanity check passed" build/test.log
 	grep -q "PIT: timer running at" build/test.log
 	grep -q "Keyboard: IRQ1 handler installed" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
-	@echo "Boot and IRQ smoke test passed."
+	@echo "Boot, IRQ, and PMM smoke test passed."
 	
 test-exception:
 	$(MAKE) clean

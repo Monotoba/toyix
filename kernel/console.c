@@ -71,3 +71,24 @@ void console_write_hex32(uint32_t value) {
 
 
 
+void console_write_u32_dec(uint32_t value) {
+	char buffer[11];
+	size_t index = 0;
+	
+	if (value == 0) {
+		console_putc('0');
+		return;
+	}
+	
+	while (value > 0 && index < sizeof(buffer)) {
+		buffer[index++] = (char)('0' + (value % 10u));
+		value /= 10u;
+	}
+	
+	while (index > 0) {
+		console_putc(buffer[--index]);
+	}
+}
+
+
+

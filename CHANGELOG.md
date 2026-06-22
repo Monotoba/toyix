@@ -4,6 +4,15 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_04] - 2026-06-21
+
+- Add Multiboot memory map parsing.
+- Add a bitmap-backed physical page allocator for 4 KiB frames.
+- Add decimal console output for memory statistics.
+- Add linker symbols for reserving the kernel image in the PMM.
+- Add build flag tracking so exception-test builds do not poison later normal runs.
+- Add Chapter 4 documentation and resource links.
+
 ## [Chapter_03] - 2026-06-21
 
 - Add remapped PIC hardware IRQ handling.
