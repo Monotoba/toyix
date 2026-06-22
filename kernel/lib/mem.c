@@ -1,5 +1,6 @@
 // kernel/lib/mem.c
 #include <stddef.h>
+#include "kernel/string.h"
 
 void *memset(void * dest, int value, size_t count) {
     unsigned char *d = (unsigned char *)dest;
@@ -46,7 +47,7 @@ void *memmove(void *dest, const void *src, size_t count) {
 }
 
 
-int memcmp(const void *left, const void * right, size_t count) {
+int memcmp(const void *left, const void *right, size_t count) {
     const unsigned char *a = (const unsigned char *)left;
     const unsigned char *b = (const unsigned char *)right;
     
@@ -58,7 +59,6 @@ int memcmp(const void *left, const void * right, size_t count) {
     
     return 0;
 }
-
 
 
 

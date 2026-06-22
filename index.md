@@ -30,3 +30,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 3: Hardware IRQs, Timer Ticks, and Keyboard Input](articles/chapter_03.md)
 - [Chapter 4: Multiboot Memory Maps and Physical Page Allocation](articles/chapter_04.md)
 - [Chapter 5: Turning On Paging](articles/chapter_05.md)
+- [Chapter 6: Building the First Kernel Heap](articles/chapter_06.md)

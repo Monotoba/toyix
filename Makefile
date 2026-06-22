@@ -44,6 +44,7 @@ OBJS := \
     build/kernel/kmain.o \
     build/kernel/idle.o \
     build/kernel/console.o \
+    build/kernel/heap.o \
     build/kernel/panic.o \
     build/kernel/pmm.o \
     build/kernel/lib/mem.o \
@@ -51,11 +52,17 @@ OBJS := \
     build/drivers/console/vga_text.o \
     build/drivers/input/keyboard.o
 
-.PHONY: all clean iso run test test-exception test-page-fault
+.PHONY: all clean iso run test test-exception test-page-fault FORCE
 
 all: build/kernel.elf
 
-build/arch/x86/paging.o: arch/x86/paging.c
+build/.cflags: FORCE
+	@mkdir -p build
+	@if [[ ! -f $@ ]] || [[ "$$(cat $@)" != "$(CFLAGS_EXTRA)" ]]; then \
+		printf '%s\n' "$(CFLAGS_EXTRA)" > $@; \
+	fi
+
+build/arch/x86/paging.o: arch/x86/paging.c build/.cflags
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -63,7 +70,7 @@ build/%.o: %.asm
 	@mkdir -p $(dir $@)
 	$(AS) -f elf32 $< -o $@
 
-build/%.o: %.c
+build/%.o: %.c build/.cflags
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -96,9 +103,11 @@ test: iso
 	grep -q "PMM test: allocation/free sanity check passed" build/test.log
 	grep -q "Paging: enabled with identity map of first 16 MiB" build/test.log
 	grep -q "Paging test: identity-mapped kernel data is readable/writable" build/test.log
+	grep -q "Heap: initialized with 4 page(s)" build/test.log
+	grep -q "Heap test: allocation/free sanity check passed" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
-	@echo "Boot, IRQ, PMM, and paging smoke test passed."
+	@echo "Boot, IRQ, PMM, paging, and heap smoke test passed."
 
 test-exception:
 	$(MAKE) clean

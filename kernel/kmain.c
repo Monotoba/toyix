@@ -9,6 +9,7 @@
 #include "drivers/input/keyboard.h"
 #include "kernel/idle.h"
 #include "kernel/console.h"
+#include "kernel/heap.h"
 #include "kernel/panic.h"
 #include "kernel/pmm.h"
 
@@ -48,6 +49,9 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     paging_init();
     paging_test_identity_mapping();
 
+    heap_init(4);
+    heap_test_once();
+
 #ifdef TOYIX_TRIGGER_PAGE_FAULT
     console_writeln("Triggering test page fault at 0xC0000000...");
     volatile uint32_t *bad = (volatile uint32_t *)0xC0000000u;
@@ -73,10 +77,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     console_writeln("Timer: observed 3 ticks");
 
     console_writeln("Try typing in the QEMU window.");
-    console_writeln("Next stop: kernel heap on top of mapped pages.");
+    console_writeln("Next stop: dynamic virtual memory mapping and heap expansion above 16 MiB.");
 
     kernel_idle();
 }
-
-
-

@@ -4,6 +4,17 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_06] - 2026-06-22
+
+- Move public kernel headers under `include/kernel`.
+- Add freestanding string/memory declarations for shared kernel code.
+- Add early kernel heap support with `kmalloc`, `kcalloc`, and `kfree`.
+- Add heap block splitting, coalescing, statistics, and boot-time sanity checks.
+- Add PMM allocation helpers for pages below the identity-mapped limit.
+- Add heap coverage to the QEMU smoke test.
+- Add build-flag tracking so test-only `CFLAGS_EXTRA` variants do not poison later normal builds.
+- Add Chapter 6 documentation and resource links.
+
 ## [Chapter_05] - 2026-06-22
 
 - Add initial 32-bit x86 paging support with identity mapping for the first 16 MiB.
