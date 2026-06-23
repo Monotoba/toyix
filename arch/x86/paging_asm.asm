@@ -16,6 +16,9 @@ global paging_enable_asm
 global paging_read_cr0
 global paging_read_cr2
 global paging_read_cr3
+global paging_invalidate_page
+global paging_reload_cr3
+
 
 paging_load_directory:
 	mov eax, [esp + 4]
@@ -26,7 +29,6 @@ paging_enable_asm:
 	mov eax, cr0
 	or eax, 0x80000000	; CR0.PG
 	mov cr0, eax
-	
 	; After enabling paging, execution continues at the next instruction.
 	;Because we are identity-mapped, this address is still valid.
 	ret
@@ -42,7 +44,16 @@ paging_read_cr2:
 paging_read_cr3:
 	mov eax, cr3
 	ret
-
+	
+paging_invalidate_page:
+	mov eax, [esp + 4]
+	invlpg [eax]
+	ret
+	
+paging_reload_cr3:
+	mov eax, cr3
+	mov cr3, eax
+	ret
 
 
 

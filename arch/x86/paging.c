@@ -12,7 +12,7 @@
 #define IDENTITY_MAP_MIB       16u
 #define IDENTITY_TABLE_COUNT   (IDENTITY_MAP_MIB / 4u)
 
-#define PAGE_FRAME_MASK        0xFFFFF000u
+
 
 typedef uint32_t page_directory_entry_t;
 typedef uint32_t page_table_entry_t;
@@ -31,11 +31,15 @@ extern uint32_t paging_read_cr0(void);
 extern uint32_t paging_read_cr2(void);
 extern uint32_t paging_read_cr3(void);
 
+
+
 static void zero_page_directory(void) {
     for (uint32_t i = 0; i < PAGE_DIRECTORY_ENTRIES; ++i) {
         page_directory[i] = 0;
     }
 }
+
+
 
 static void build_identity_tables(void) {
     for (uint32_t table = 0; table < IDENTITY_TABLE_COUNT; ++table) {
@@ -44,17 +48,19 @@ static void build_identity_tables(void) {
                 ((table * PAGE_TABLE_ENTRIES) + entry) * X86_PAGE_SIZE;
 
             identity_tables[table][entry] =
-                (physical_addr & PAGE_FRAME_MASK) |
+                (physical_addr & X86_PAGE_FRAME_MASK) |
                 X86_PAGE_PRESENT |
                 X86_PAGE_WRITABLE;
         }
 
         page_directory[table] =
-            ((uint32_t)&identity_tables[table][0] & PAGE_FRAME_MASK) |
+            ((uint32_t)&identity_tables[table][0] & X86_PAGE_FRAME_MASK) |
             X86_PAGE_PRESENT |
             X86_PAGE_WRITABLE;
     }
 }
+
+
 
 static void print_page_fault_error(uint32_t error_code) {
     console_write("Page fault error bits: ");
@@ -88,6 +94,8 @@ static void print_page_fault_error(uint32_t error_code) {
     console_putc('\n');
 }
 
+
+
 static void page_fault_handler(interrupt_frame_t *frame) {
     uint32_t fault_addr = paging_read_cr2();
 
@@ -108,6 +116,8 @@ static void page_fault_handler(interrupt_frame_t *frame) {
 
     kernel_panic("page fault");
 }
+
+
 
 void paging_init(void) {
     console_writeln("Paging: building identity map");
@@ -137,6 +147,8 @@ int paging_is_enabled(void) {
     return (paging_read_cr0() & 0x80000000u) != 0;
 }
 
+
+
 void paging_test_identity_mapping(void) {
     uint32_t before = paging_test_word;
 
@@ -150,4 +162,12 @@ void paging_test_identity_mapping(void) {
 
     console_writeln("Paging test: identity-mapped kernel data is readable/writable");
 }
+
+
+uint32_t *paging_get_kernel_directory(void) {
+	return page_directory;
+}
+
+
+
 

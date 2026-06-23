@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_07] - 2026-06-23
+
+- Add a virtual memory manager with page mapping, unmapping, and translation helpers.
+- Add on-demand page-table setup and TLB invalidation helpers for the paging layer.
+- Move the Chapter 7 kernel boot path to initialize and smoke-test VMM before the heap.
+- Update the Chapter 7 article, README, roadmap, and series index for the current code and test flow.
+
 ## [Chapter_06] - 2026-06-22
 
 - Move public kernel headers under `include/kernel`.

@@ -82,7 +82,7 @@ arch/x86/
 We will modify:
 
 ```text
-arch/x86/paging.asm
+arch/x86/paging_asm.asm
 arch/x86/paging.c
 arch/x86/paging.h
 kernel/kmain.c
@@ -208,12 +208,12 @@ Those are paging-layer facts, so they belong in `paging.h`.
 
 ---
 
-# 5. Update `arch/x86/paging.asm`
+# 5. Update `arch/x86/paging_asm.asm`
 
-Replace `arch/x86/paging.asm` with this expanded version.
+Replace `arch/x86/paging_asm.asm` with this expanded version.
 
 ```asm
-; arch/x86/paging.asm
+; arch/x86/paging_asm.asm
 ;
 ; Low-level paging control functions.
 ;
@@ -798,7 +798,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     console_writeln("Try typing in the QEMU window.");
     console_writeln("Next stop: move heap growth onto VMM-mapped virtual pages.");
 
-    kernel_idle_forever();
+    kernel_idle();
 }
 ```
 
@@ -809,6 +809,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 Add:
 
 ```text
+build/arch/x86/paging_asm.o
 build/arch/x86/vmm.o
 ```
 
@@ -825,6 +826,7 @@ OBJS := \
     build/arch/x86/interrupts.o \
     build/arch/x86/isr.o \
     build/arch/x86/irq.o \
+    build/arch/x86/paging_asm.o \
     build/arch/x86/paging.o \
     build/arch/x86/pic.o \
     build/arch/x86/pit.o \
@@ -843,25 +845,19 @@ OBJS := \
 Update the `test` target with VMM checks:
 
 ```make
-	grep -q "VMM: initialized kernel address-space mapper" build/test.log
-	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-```
-
-The key part of the test target should now include:
-
-```make
 test: iso
-	$(GRUB_FILE) --is-x86-multiboot build/kernel.elf
 	@mkdir -p build
+	@rm -f build/test.log
 	@timeout 5s $(QEMU) \
 		-cdrom build/toyix.iso \
-		-serial stdio \
 		-display none \
 		-monitor none \
+		-serial file:build/test.log \
 		-no-reboot \
-		> build/test.log || true
+		2>/dev/null || true
 	grep -q "Toyix kernel alive" build/test.log
 	grep -q "Boot protocol: Multiboot OK" build/test.log
+	grep -q "PMM: parsing Multiboot memory map" build/test.log
 	grep -q "PMM test: allocation/free sanity check passed" build/test.log
 	grep -q "Paging: enabled with identity map of first 16 MiB" build/test.log
 	grep -q "Paging test: identity-mapped kernel data is readable/writable" build/test.log
@@ -871,7 +867,7 @@ test: iso
 	grep -q "Heap test: allocation/free sanity check passed" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
-	@echo "Boot, IRQ, PMM, paging, VMM, and heap smoke test passed."
+	@echo "Boot, IRQ, PMM, paging, and heap smoke test passed."
 ```
 
 ---
@@ -885,7 +881,6 @@ set -euo pipefail
 make clean
 make test
 make test-exception
-make test-page-fault
 
 echo "All Chapter 7 checks passed."
 ```

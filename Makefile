@@ -41,6 +41,7 @@ OBJS := \
     build/arch/x86/paging.o \
     build/arch/x86/pic.o \
     build/arch/x86/pit.o \
+    build/arch/x86/vmm.o \
     build/kernel/kmain.o \
     build/kernel/idle.o \
     build/kernel/console.o \
@@ -107,6 +108,8 @@ test: iso
 	grep -q "Heap test: allocation/free sanity check passed" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
+	grep -q "VMM: initialized kernel address-space mapper" build/test.log
+	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
 	@echo "Boot, IRQ, PMM, paging, and heap smoke test passed."
 
 test-exception:

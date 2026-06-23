@@ -1,3 +1,4 @@
+// kernel/kmain.c
 #include <stdint.h>
 #include "arch/x86/gdt.h"
 #include "arch/x86/idt.h"
@@ -6,6 +7,7 @@
 #include "arch/x86/paging.h"
 #include "arch/x86/pic.h"
 #include "arch/x86/pit.h"
+#include "arch/x86/vmm.h"
 #include "drivers/input/keyboard.h"
 #include "kernel/idle.h"
 #include "kernel/console.h"
@@ -48,6 +50,9 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     paging_init();
     paging_test_identity_mapping();
+    
+    vmm_init();
+    vmm_test_once();
 
     heap_init(4);
     heap_test_once();
@@ -77,7 +82,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     console_writeln("Timer: observed 3 ticks");
 
     console_writeln("Try typing in the QEMU window.");
-    console_writeln("Next stop: dynamic virtual memory mapping and heap expansion above 16 MiB.");
+    console_writeln("Next stop: move heap growth onto VMM-mapped virtual pages.");
 
     kernel_idle();
 }
