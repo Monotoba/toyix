@@ -60,6 +60,12 @@ irq_common_stub:
 	push esp
 	call irq_handler
 	add esp, 4
+
+	test eax, eax
+	jz .restore_current
+	mov esp, eax
+
+.restore_current:
 	
 	pop eax
 	mov ds, ax
@@ -73,7 +79,6 @@ irq_common_stub:
 	
 	iretd
 	
-
 
 
 

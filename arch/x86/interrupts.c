@@ -5,6 +5,7 @@
 #include "arch/x86/pic.h"
 #include "kernel/console.h"
 #include "kernel/panic.h"
+#include "kernel/thread.h"
 
 
 static interrupt_handler_t interrupt_handlers[256];
@@ -127,12 +128,13 @@ void isr_handler(interrupt_frame_t *frame) {
 }
 
 
-void irq_handler(interrupt_frame_t *frame) {
+uintptr_t irq_handler(interrupt_frame_t *frame) {
 	if (frame == NULL) {
 		kernel_panic("null IRQ frame");
 	}
 	
 	uint32_t vector = frame->interrupt_number;
+	uintptr_t next_esp = 0;
 	
 	if (vector >= 32 && vector <= 47) {
 		if (interrupt_handlers[vector] != NULL) {
@@ -140,10 +142,17 @@ void irq_handler(interrupt_frame_t *frame) {
 		}
 		
 		pic_send_eoi((uint8_t) (vector - 32));
-		return;
+
+		if (vector == 32 && thread_should_reschedule()) {
+			next_esp = thread_schedule_from_interrupt(frame);
+		}
+
+		return next_esp;
 	}
 	
 	console_write("Unexpected IRQ vector ");
 	console_write_hex32(vector);
 	console_putc('\n');
+
+	return 0;
 }

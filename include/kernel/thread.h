@@ -3,6 +3,7 @@
 #define TOYIX_KERNEL_THREAD_H
 
 #include <stdint.h>
+#include "arch/x86/interrupts.h"
 
 #define THREAD_STACK_SIZE 16384u
 
@@ -50,6 +51,15 @@ thread_t *thread_current(void);
 
 void thread_yield(void);
 void thread_exit(void) __attribute__((noreturn));
+
+void thread_on_timer_tick(interrupt_frame_t *frame);
+int thread_should_reschedule(void);
+uintptr_t thread_schedule_from_interrupt(interrupt_frame_t *frame);
+uintptr_t schedule_interrupt_handler(interrupt_frame_t *frame);
+
+void thread_preemption_init(uint32_t ticks_per_slice);
+void thread_preemption_test_prepare(void);
+void thread_preemption_test_wait(void);
 
 uint32_t thread_ready_count(void);
 void thread_dump_state(void);

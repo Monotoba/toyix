@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "arch/x86/gdt.h"
 #include "arch/x86/idt.h"
+#include "arch/x86/interrupts.h"
 #include "kernel/console.h"
 
 
@@ -77,6 +78,7 @@ extern void irq12(void);
 extern void irq13(void);
 extern void irq14(void);
 extern void irq15(void);
+extern void sched_interrupt_stub(void);
 
 
 
@@ -152,8 +154,14 @@ void idt_init(void) {
     }
     
     
-    idt_load((uint32_t) & idt_ptr);
-    
-    console_writeln("IDT: installed CPU exception handlers");
-}
+    idt_set_gate(
+        X86_SCHED_INTERRUPT_VECTOR,
+        (uint32_t)sched_interrupt_stub,
+        X86_KERNEL_CODE_SELECTOR,
+        0x8Eu
+    );
 
+    idt_load((uint32_t) & idt_ptr);
+
+    console_writeln("IDT: installed exceptions, IRQs, and scheduler interrupt");
+}

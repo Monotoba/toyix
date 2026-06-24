@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+#define X86_SCHED_INTERRUPT_VECTOR 48u
+
 typedef struct interrupt_frame {
     uint32_t ds;
     
@@ -27,7 +29,7 @@ typedef struct interrupt_frame {
 typedef void (*interrupt_handler_t)(interrupt_frame_t * frame);
 
 void isr_handler(interrupt_frame_t *frame);
-void irq_handler(interrupt_frame_t *frame);
+uintptr_t irq_handler(interrupt_frame_t *frame);
 
 
 int interrupt_register_handler(uint8_t vector, interrupt_handler_t handler);

@@ -71,6 +71,9 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     pit_init(100);
     keyboard_init();
 
+    thread_preemption_init(2);
+    thread_preemption_test_prepare();
+
     console_writeln("Interrupt hardware: configured");
 
 #ifdef TOYIX_TRIGGER_TEST_EXCEPTION
@@ -81,6 +84,8 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     interrupts_enable();
 
     console_writeln("Interrupts: enabled");
+
+    thread_preemption_test_wait();
 
     pit_wait_ticks(3);
     console_writeln("Timer: observed 3 ticks");

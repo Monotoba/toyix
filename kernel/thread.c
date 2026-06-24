@@ -1,6 +1,8 @@
 // kernel/thread.c
 #include <stddef.h>
 #include <stdint.h>
+#include "arch/x86/gdt.h"
+#include "arch/x86/interrupts.h"
 #include "kernel/console.h"
 #include "kernel/heap.h"
 #include "kernel/panic.h"
@@ -8,11 +10,7 @@
 #include "kernel/thread.h"
 
 #define THREAD_MAGIC 0x54485244u
-
-extern void x86_context_switch(
-	thread_context_t *old_context,
-	thread_context_t *new_context
-);
+#define INITIAL_EFLAGS 0x00000202u
 
 static thread_t bootstrap_thread;
 
@@ -22,6 +20,13 @@ static thread_t *ready_tail;
 
 static uint32_t next_thread_id;
 static uint32_t finished_thread_count;
+
+static int preemption_enabled;
+static uint32_t ticks_per_slice;
+static uint32_t current_slice_ticks;
+static int reschedule_requested;
+
+static volatile uint32_t preempt_test_done_count;
 
 static void thread_bootstrap(void);
 
@@ -111,11 +116,20 @@ static void thread_make_initial_stack(thread_t *thread) {
 
 	uint32_t *sp = (uint32_t *)stack_top;
 
+	*(--sp) = INITIAL_EFLAGS;
+	*(--sp) = X86_KERNEL_CODE_SELECTOR;
 	*(--sp) = (uint32_t)thread_bootstrap;
-	*(--sp) = 0;
-	*(--sp) = 0;
-	*(--sp) = 0;
-	*(--sp) = 0;
+	*(--sp) = 0;                        /* error code */
+	*(--sp) = X86_SCHED_INTERRUPT_VECTOR;
+	*(--sp) = 0;                        /* eax */
+	*(--sp) = 0;                        /* ecx */
+	*(--sp) = 0;                        /* edx */
+	*(--sp) = 0;                        /* ebx */
+	*(--sp) = 0;                        /* original esp */
+	*(--sp) = 0;                        /* ebp */
+	*(--sp) = 0;                        /* esi */
+	*(--sp) = 0;                        /* edi */
+	*(--sp) = X86_KERNEL_DATA_SELECTOR;
 
 	thread->context.esp = (uint32_t)sp;
 }
@@ -125,6 +139,12 @@ void threading_init(void) {
 	ready_tail = 0;
 	next_thread_id = 1;
 	finished_thread_count = 0;
+
+	preemption_enabled = 0;
+	ticks_per_slice = 1;
+	current_slice_ticks = 0;
+	reschedule_requested = 0;
+	preempt_test_done_count = 0;
 
 	bootstrap_thread.magic = THREAD_MAGIC;
 	bootstrap_thread.id = 0;
@@ -140,7 +160,7 @@ void threading_init(void) {
 
 	current_thread = &bootstrap_thread;
 
-	console_writeln("Threads: cooperative scheduler initialized");
+	console_writeln("Threads: interrupt-frame scheduler initialized");
 }
 
 thread_t *thread_create(
@@ -196,26 +216,7 @@ thread_t *thread_current(void) {
 }
 
 void thread_yield(void) {
-	thread_t *old_thread = current_thread;
-	validate_thread(old_thread);
-
-	thread_t *next_thread = ready_pop();
-
-	if (next_thread == 0) {
-		return;
-	}
-
-	validate_thread(next_thread);
-
-	if (old_thread->state == THREAD_RUNNING) {
-		old_thread->state = THREAD_READY;
-		ready_push(old_thread);
-	}
-
-	next_thread->state = THREAD_RUNNING;
-	current_thread = next_thread;
-
-	x86_context_switch(&old_thread->context, &next_thread->context);
+	__asm__ volatile ("int $0x30" ::: "memory");
 }
 
 void thread_exit(void) {
@@ -231,18 +232,7 @@ void thread_exit(void) {
 	old_thread->state = THREAD_FINISHED;
 	finished_thread_count++;
 
-	thread_t *next_thread = ready_pop();
-
-	if (next_thread == 0) {
-		kernel_panic("thread_exit: no thread to switch to");
-	}
-
-	validate_thread(next_thread);
-
-	next_thread->state = THREAD_RUNNING;
-	current_thread = next_thread;
-
-	x86_context_switch(&old_thread->context, &next_thread->context);
+	__asm__ volatile ("int $0x30" ::: "memory");
 
 	kernel_panic("thread_exit returned unexpectedly");
 }
@@ -258,6 +248,88 @@ static void thread_bootstrap(void) {
 	self->entry(self->arg);
 
 	thread_exit();
+}
+
+uintptr_t thread_schedule_from_interrupt(interrupt_frame_t *frame) {
+	if (frame == 0) {
+		kernel_panic("scheduler received null interrupt frame");
+	}
+
+	thread_t *old_thread = current_thread;
+	validate_thread(old_thread);
+
+	if (ready_head == 0) {
+		current_slice_ticks = 0;
+		reschedule_requested = 0;
+		return 0;
+	}
+
+	old_thread->context.esp = (uint32_t)(uintptr_t)frame;
+
+	if (old_thread->state == THREAD_RUNNING) {
+		old_thread->state = THREAD_READY;
+		ready_push(old_thread);
+	}
+
+	thread_t *next_thread = ready_pop();
+
+	if (next_thread == 0) {
+		current_slice_ticks = 0;
+		reschedule_requested = 0;
+		return 0;
+	}
+
+	validate_thread(next_thread);
+
+	next_thread->state = THREAD_RUNNING;
+	current_thread = next_thread;
+
+	current_slice_ticks = 0;
+	reschedule_requested = 0;
+
+	return (uintptr_t)next_thread->context.esp;
+}
+
+uintptr_t schedule_interrupt_handler(interrupt_frame_t *frame) {
+	return thread_schedule_from_interrupt(frame);
+}
+
+void thread_on_timer_tick(interrupt_frame_t *frame) {
+	(void)frame;
+
+	if (!preemption_enabled) {
+		return;
+	}
+
+	if (ready_head == 0) {
+		current_slice_ticks = 0;
+		return;
+	}
+
+	current_slice_ticks++;
+
+	if (current_slice_ticks >= ticks_per_slice) {
+		reschedule_requested = 1;
+	}
+}
+
+int thread_should_reschedule(void) {
+	return reschedule_requested;
+}
+
+void thread_preemption_init(uint32_t requested_ticks_per_slice) {
+	if (requested_ticks_per_slice == 0) {
+		requested_ticks_per_slice = 1;
+	}
+
+	ticks_per_slice = requested_ticks_per_slice;
+	current_slice_ticks = 0;
+	reschedule_requested = 0;
+	preemption_enabled = 1;
+
+	console_write("Threads: preemption enabled, slice ticks=");
+	console_write_u32_dec(ticks_per_slice);
+	console_putc('\n');
 }
 
 void thread_dump_state(void) {
@@ -306,7 +378,7 @@ static void worker_thread(void *arg) {
 }
 
 void thread_test_once(void) {
-	console_writeln("Thread test: starting cooperative multitasking test");
+	console_writeln("Thread test: starting software-yield multitasking test");
 
 	static thread_test_arg_t arg_a = {
 		.label = "A",
@@ -325,6 +397,73 @@ void thread_test_once(void) {
 		thread_yield();
 	}
 
-	console_writeln("Thread test: completed cooperative multitasking test");
+	console_writeln("Thread test: completed software-yield multitasking test");
+	thread_dump_state();
+}
+
+typedef struct preempt_test_arg {
+	const char *label;
+	volatile uint32_t counter;
+} preempt_test_arg_t;
+
+static preempt_test_arg_t preempt_arg_a = {
+	.label = "P",
+	.counter = 0
+};
+
+static preempt_test_arg_t preempt_arg_b = {
+	.label = "Q",
+	.counter = 0
+};
+
+static void preempt_worker(void *arg) {
+	preempt_test_arg_t *test = (preempt_test_arg_t *)arg;
+
+	for (uint32_t round = 0; round < 5; ++round) {
+		for (volatile uint32_t i = 0; i < 600000u; ++i) {
+			test->counter++;
+		}
+
+		console_write("Preempt test: worker ");
+		console_write(test->label);
+		console_write(" round ");
+		console_write_u32_dec(round);
+		console_putc('\n');
+	}
+
+	preempt_test_done_count++;
+}
+
+void thread_preemption_test_prepare(void) {
+	preempt_test_done_count = 0;
+	preempt_arg_a.counter = 0;
+	preempt_arg_b.counter = 0;
+
+	console_writeln("Preempt test: creating non-yielding workers");
+
+	thread_create("preempt-p", preempt_worker, &preempt_arg_a);
+	thread_create("preempt-q", preempt_worker, &preempt_arg_b);
+}
+
+void thread_preemption_test_wait(void) {
+	console_writeln("Preempt test: waiting for timer-driven scheduling");
+
+	while (preempt_test_done_count < 2) {
+		interrupts_wait();
+	}
+
+	console_write("Preempt test: worker P counter ");
+	console_write_u32_dec(preempt_arg_a.counter);
+	console_putc('\n');
+
+	console_write("Preempt test: worker Q counter ");
+	console_write_u32_dec(preempt_arg_b.counter);
+	console_putc('\n');
+
+	if (preempt_arg_a.counter == 0 || preempt_arg_b.counter == 0) {
+		kernel_panic("preemption test counter did not advance");
+	}
+
+	console_writeln("Preempt test: timer-driven preemption sanity check passed");
 	thread_dump_state();
 }

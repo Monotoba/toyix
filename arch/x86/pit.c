@@ -5,6 +5,7 @@
 #include "arch/x86/pic.h"
 #include "arch/x86/pit.h"
 #include "kernel/console.h"
+#include "kernel/thread.h"
 
 #define PIT_CHANNEL0_PORT 0x40u
 #define PIT_COMMAND_PORT  0x43u
@@ -14,8 +15,8 @@ static volatile uint32_t pit_ticks;
 
 
 static void pit_irq_handler(interrupt_frame_t *frame) {
-	(void)frame;
 	pit_ticks++;
+	thread_on_timer_tick(frame);
 }
 
 
@@ -70,4 +71,3 @@ void pit_wait_ticks(uint32_t ticks) {
 		interrupts_wait();
 	}
 }
-
