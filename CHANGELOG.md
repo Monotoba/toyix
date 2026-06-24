@@ -4,7 +4,12 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
-- Update the README with a CodeRancher.us tutorial pointer for Toyix development.
+## [Chapter_11] - 2026-06-24
+
+- Add interrupt-safe blocking primitives with `irq_save()` and `irq_restore()`.
+- Add an idle thread, sleep queue, zombie queue, and zombie reaping.
+- Add `thread_sleep_ticks()` and a blocking sleep smoke test.
+- Update Chapter 11, the README, the roadmap, the series index, and the Makefile smoke expectations.
 
 ## [Chapter_10] - 2026-06-24
 

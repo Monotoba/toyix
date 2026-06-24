@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
 [![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20IRQ%20%2B%20PMM%20%2B%20paging%20%2B%20VMM%20%2B%20heap%20%2B%20exception-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads and timer-driven preemption, and verifies boot behavior through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, and blocking sleep primitives, and verifies boot behavior through automated QEMU smoke tests.
 
 Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us).
 
@@ -41,7 +41,8 @@ Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us
 - Heap block splitting, coalescing, statistics, and sanity checks
 - Cooperative kernel threads with a software context switch and round-robin yield path
 - Timer-driven preemption through a dedicated scheduling interrupt and interrupt-frame restore path
-- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, preemption, deliberate invalid-opcode exception handling, and deliberate page-fault handling
+- Blocking sleep primitives with an idle thread, sleep queue, zombie queue, and zombie reaping
+- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, preemption, blocking sleep, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
 ## Repository Layout
@@ -127,6 +128,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 8](articles/chapter_08.md)
 - [Chapter 9](articles/chapter_09.md)
 - [Chapter 10](articles/chapter_10.md)
+- [Chapter 11](articles/chapter_11.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

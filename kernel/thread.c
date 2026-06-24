@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "arch/x86/gdt.h"
 #include "arch/x86/interrupts.h"
+#include "arch/x86/irq_state.h"
 #include "kernel/console.h"
 #include "kernel/heap.h"
 #include "kernel/panic.h"
@@ -13,22 +14,36 @@
 #define INITIAL_EFLAGS 0x00000202u
 
 static thread_t bootstrap_thread;
+static thread_t *idle_thread;
 
 static thread_t *current_thread;
+
 static thread_t *ready_head;
 static thread_t *ready_tail;
 
-static uint32_t next_thread_id;
-static uint32_t finished_thread_count;
+static thread_t *sleep_head;
+static thread_t *sleep_tail;
 
+static thread_t *zombie_head;
+static thread_t *zombie_tail;
+
+static uint32_t next_thread_id;
+static uint32_t zombie_created_count;
+static uint32_t zombie_reaped_count;
+
+static int scheduler_initialized;
 static int preemption_enabled;
+
 static uint32_t ticks_per_slice;
 static uint32_t current_slice_ticks;
 static int reschedule_requested;
 
+static volatile uint32_t scheduler_ticks;
 static volatile uint32_t preempt_test_done_count;
+static volatile uint32_t sleep_test_done_count;
 
 static void thread_bootstrap(void);
+static void idle_thread_entry(void *arg);
 
 static uintptr_t align_down(uintptr_t value, uintptr_t alignment) {
 	return value & ~(alignment - 1u);
@@ -52,41 +67,63 @@ static const char *thread_state_name(thread_state_t state) {
 			return "READY";
 		case THREAD_RUNNING:
 			return "RUNNING";
-		case THREAD_FINISHED:
-			return "FINISHED";
+		case THREAD_BLOCKED:
+			return "BLOCKED";
+		case THREAD_SLEEPING:
+			return "SLEEPING";
+		case THREAD_ZOMBIE:
+			return "ZOMBIE";
 		default:
 			return "UNKNOWN";
 	}
 }
 
-static void ready_push(thread_t *thread) {
+static uint32_t count_list(const thread_t *head) {
+	uint32_t count = 0;
+
+	for (const thread_t *t = head; t != 0; t = t->next) {
+		validate_thread(t);
+		count++;
+	}
+
+	return count;
+}
+
+static void queue_push(
+	thread_t **head,
+	thread_t **tail,
+	thread_t *thread
+) {
 	validate_thread(thread);
 
 	thread->next = 0;
-	thread->prev = ready_tail;
+	thread->prev = *tail;
 
-	if (ready_tail != 0) {
-		ready_tail->next = thread;
+	if (*tail != 0) {
+		(*tail)->next = thread;
 	} else {
-		ready_head = thread;
+		*head = thread;
 	}
 
-	ready_tail = thread;
+	*tail = thread;
 }
 
-static thread_t *ready_pop(void) {
-	thread_t *thread = ready_head;
+static thread_t *queue_pop(
+	thread_t **head,
+	thread_t **tail
+) {
+	thread_t *thread = *head;
 
 	if (thread == 0) {
 		return 0;
 	}
 
-	ready_head = thread->next;
+	*head = thread->next;
 
-	if (ready_head != 0) {
-		ready_head->prev = 0;
+	if (*head != 0) {
+		(*head)->prev = 0;
 	} else {
-		ready_tail = 0;
+		*tail = 0;
 	}
 
 	thread->next = 0;
@@ -95,15 +132,121 @@ static thread_t *ready_pop(void) {
 	return thread;
 }
 
-uint32_t thread_ready_count(void) {
-	uint32_t count = 0;
-
-	for (thread_t *t = ready_head; t != 0; t = t->next) {
-		validate_thread(t);
-		count++;
+static void ready_push(thread_t *thread) {
+	if (thread == idle_thread) {
+		return;
 	}
 
+	thread->state = THREAD_READY;
+	queue_push(&ready_head, &ready_tail, thread);
+}
+
+static thread_t *ready_pop(void) {
+	return queue_pop(&ready_head, &ready_tail);
+}
+
+static void zombie_push(thread_t *thread) {
+	if (thread == idle_thread || thread == &bootstrap_thread) {
+		return;
+	}
+
+	queue_push(&zombie_head, &zombie_tail, thread);
+}
+
+static thread_t *zombie_pop(void) {
+	return queue_pop(&zombie_head, &zombie_tail);
+}
+
+static thread_t *sleep_pop_front(void) {
+	return queue_pop(&sleep_head, &sleep_tail);
+}
+
+static int tick_reached(uint32_t now, uint32_t target) {
+	return (int32_t)(now - target) >= 0;
+}
+
+static void sleep_insert(thread_t *thread) {
+	validate_thread(thread);
+
+	thread->state = THREAD_SLEEPING;
+	thread->next = 0;
+	thread->prev = 0;
+
+	if (sleep_head == 0) {
+		sleep_head = thread;
+		sleep_tail = thread;
+		return;
+	}
+
+	thread_t *current = sleep_head;
+
+	while (current != 0 &&
+	       !tick_reached(current->wake_tick, thread->wake_tick)) {
+		current = current->next;
+	}
+
+	if (current == sleep_head) {
+		thread->next = sleep_head;
+		sleep_head->prev = thread;
+		sleep_head = thread;
+		return;
+	}
+
+	if (current == 0) {
+		thread->prev = sleep_tail;
+		sleep_tail->next = thread;
+		sleep_tail = thread;
+		return;
+	}
+
+	thread_t *previous = current->prev;
+	previous->next = thread;
+	thread->prev = previous;
+	thread->next = current;
+	current->prev = thread;
+}
+
+static void wake_due_sleepers(void) {
+	while (sleep_head != 0 &&
+	       tick_reached((uint32_t)scheduler_ticks, sleep_head->wake_tick)) {
+		thread_t *thread = sleep_pop_front();
+
+		validate_thread(thread);
+
+		console_write("Threads: waking ");
+		console_write(thread->name);
+		console_write(" at tick ");
+		console_write_u32_dec((uint32_t)scheduler_ticks);
+		console_putc('\n');
+
+		ready_push(thread);
+		reschedule_requested = 1;
+	}
+}
+
+uint32_t thread_ready_count(void) {
+	irq_flags_t flags = irq_save();
+	uint32_t count = count_list(ready_head);
+	irq_restore(flags);
 	return count;
+}
+
+uint32_t thread_sleeping_count(void) {
+	irq_flags_t flags = irq_save();
+	uint32_t count = count_list(sleep_head);
+	irq_restore(flags);
+	return count;
+}
+
+uint32_t thread_zombie_count(void) {
+	irq_flags_t flags = irq_save();
+	uint32_t count = count_list(zombie_head);
+	irq_restore(flags);
+	return count;
+}
+
+uint32_t thread_ticks(void) {
+	return (uint32_t)scheduler_ticks;
 }
 
 static void thread_make_initial_stack(thread_t *thread) {
@@ -116,57 +259,41 @@ static void thread_make_initial_stack(thread_t *thread) {
 
 	uint32_t *sp = (uint32_t *)stack_top;
 
+	/*
+	 * Build the stack frame expected by irq.asm and sched_interrupt.asm:
+	 *
+	 *   pop saved DS
+	 *   popa
+	 *   add esp, 8
+	 *   iretd
+	 */
+
 	*(--sp) = INITIAL_EFLAGS;
 	*(--sp) = X86_KERNEL_CODE_SELECTOR;
 	*(--sp) = (uint32_t)thread_bootstrap;
-	*(--sp) = 0;                        /* error code */
+
+	*(--sp) = 0;
 	*(--sp) = X86_SCHED_INTERRUPT_VECTOR;
-	*(--sp) = 0;                        /* eax */
-	*(--sp) = 0;                        /* ecx */
-	*(--sp) = 0;                        /* edx */
-	*(--sp) = 0;                        /* ebx */
-	*(--sp) = 0;                        /* original esp */
-	*(--sp) = 0;                        /* ebp */
-	*(--sp) = 0;                        /* esi */
-	*(--sp) = 0;                        /* edi */
+
+	*(--sp) = 0;
+	*(--sp) = 0;
+	*(--sp) = 0;
+	*(--sp) = 0;
+	*(--sp) = 0;
+	*(--sp) = 0;
+	*(--sp) = 0;
+	*(--sp) = 0;
+
 	*(--sp) = X86_KERNEL_DATA_SELECTOR;
 
 	thread->context.esp = (uint32_t)sp;
 }
 
-void threading_init(void) {
-	ready_head = 0;
-	ready_tail = 0;
-	next_thread_id = 1;
-	finished_thread_count = 0;
-
-	preemption_enabled = 0;
-	ticks_per_slice = 1;
-	current_slice_ticks = 0;
-	reschedule_requested = 0;
-	preempt_test_done_count = 0;
-
-	bootstrap_thread.magic = THREAD_MAGIC;
-	bootstrap_thread.id = 0;
-	bootstrap_thread.name = "bootstrap";
-	bootstrap_thread.state = THREAD_RUNNING;
-	bootstrap_thread.context.esp = 0;
-	bootstrap_thread.stack_base = 0;
-	bootstrap_thread.stack_size = 0;
-	bootstrap_thread.entry = 0;
-	bootstrap_thread.arg = 0;
-	bootstrap_thread.next = 0;
-	bootstrap_thread.prev = 0;
-
-	current_thread = &bootstrap_thread;
-
-	console_writeln("Threads: interrupt-frame scheduler initialized");
-}
-
-thread_t *thread_create(
+static thread_t *thread_create_internal(
 	const char *name,
 	thread_entry_t entry,
-	void *arg
+	void *arg,
+	int enqueue
 ) {
 	if (entry == 0) {
 		kernel_panic("thread_create received null entry");
@@ -188,17 +315,26 @@ thread_t *thread_create(
 	thread->id = next_thread_id++;
 	thread->name = name != 0 ? name : "unnamed";
 	thread->state = THREAD_NEW;
+
 	thread->stack_base = stack;
 	thread->stack_size = THREAD_STACK_SIZE;
+
 	thread->entry = entry;
 	thread->arg = arg;
+
+	thread->wake_tick = 0;
 	thread->next = 0;
 	thread->prev = 0;
 
 	thread_make_initial_stack(thread);
 
-	thread->state = THREAD_READY;
-	ready_push(thread);
+	if (enqueue) {
+		irq_flags_t flags = irq_save();
+		ready_push(thread);
+		irq_restore(flags);
+	} else {
+		thread->state = THREAD_READY;
+	}
 
 	console_write("Thread: created ");
 	console_write(thread->name);
@@ -211,6 +347,66 @@ thread_t *thread_create(
 	return thread;
 }
 
+void threading_init(void) {
+	ready_head = 0;
+	ready_tail = 0;
+
+	sleep_head = 0;
+	sleep_tail = 0;
+
+	zombie_head = 0;
+	zombie_tail = 0;
+
+	next_thread_id = 1;
+	zombie_created_count = 0;
+	zombie_reaped_count = 0;
+
+	scheduler_initialized = 0;
+	preemption_enabled = 0;
+
+	ticks_per_slice = 1;
+	current_slice_ticks = 0;
+	reschedule_requested = 0;
+
+	scheduler_ticks = 0;
+	preempt_test_done_count = 0;
+	sleep_test_done_count = 0;
+
+	bootstrap_thread.magic = THREAD_MAGIC;
+	bootstrap_thread.id = 0;
+	bootstrap_thread.name = "bootstrap";
+	bootstrap_thread.state = THREAD_RUNNING;
+	bootstrap_thread.context.esp = 0;
+	bootstrap_thread.stack_base = 0;
+	bootstrap_thread.stack_size = 0;
+	bootstrap_thread.entry = 0;
+	bootstrap_thread.arg = 0;
+	bootstrap_thread.wake_tick = 0;
+	bootstrap_thread.next = 0;
+	bootstrap_thread.prev = 0;
+
+	current_thread = &bootstrap_thread;
+
+	idle_thread = thread_create_internal(
+		"idle",
+		idle_thread_entry,
+		0,
+		0
+	);
+
+	scheduler_initialized = 1;
+
+	console_writeln("Threads: blocking scheduler initialized");
+}
+
+thread_t *thread_create(
+	const char *name,
+	thread_entry_t entry,
+	void *arg
+) {
+	return thread_create_internal(name, entry, arg, 1);
+}
+
 thread_t *thread_current(void) {
 	return current_thread;
 }
@@ -219,7 +415,44 @@ void thread_yield(void) {
 	__asm__ volatile ("int $0x30" ::: "memory");
 }
 
+void thread_sleep_ticks(uint32_t ticks) {
+	if (ticks == 0) {
+		thread_yield();
+		return;
+	}
+
+	irq_flags_t flags = irq_save();
+
+	if (!irq_flags_interrupts_enabled(flags)) {
+		irq_restore(flags);
+		kernel_panic("thread_sleep_ticks called with interrupts disabled");
+	}
+
+	thread_t *self = current_thread;
+	validate_thread(self);
+
+	if (self == idle_thread) {
+		irq_restore(flags);
+		return;
+	}
+
+	self->wake_tick = (uint32_t)scheduler_ticks + ticks;
+	sleep_insert(self);
+	reschedule_requested = 1;
+
+	irq_restore(flags);
+
+	/*
+	 * If we are preempted immediately after restoring interrupts, we may
+	 * resume here while already marked SLEEPING. A second yield is still
+	 * safe; the scheduler will skip requeueing sleeping threads.
+	 */
+	thread_yield();
+}
+
 void thread_exit(void) {
+	irq_flags_t flags = irq_save();
+
 	thread_t *old_thread = current_thread;
 	validate_thread(old_thread);
 
@@ -229,10 +462,14 @@ void thread_exit(void) {
 	console_write_u32_dec(old_thread->id);
 	console_putc('\n');
 
-	old_thread->state = THREAD_FINISHED;
-	finished_thread_count++;
+	old_thread->state = THREAD_ZOMBIE;
+	zombie_push(old_thread);
+	zombie_created_count++;
+	reschedule_requested = 1;
 
-	__asm__ volatile ("int $0x30" ::: "memory");
+	irq_restore(flags);
+
+	thread_yield();
 
 	kernel_panic("thread_exit returned unexpectedly");
 }
@@ -250,33 +487,56 @@ static void thread_bootstrap(void) {
 	thread_exit();
 }
 
+static void idle_thread_entry(void *arg) {
+	(void)arg;
+
+	for (;;) {
+		thread_reap_zombies();
+		interrupts_wait();
+	}
+}
+
 uintptr_t thread_schedule_from_interrupt(interrupt_frame_t *frame) {
 	if (frame == 0) {
 		kernel_panic("scheduler received null interrupt frame");
 	}
 
+	if (!scheduler_initialized) {
+		return 0;
+	}
+
 	thread_t *old_thread = current_thread;
 	validate_thread(old_thread);
 
-	if (ready_head == 0) {
-		current_slice_ticks = 0;
-		reschedule_requested = 0;
-		return 0;
-	}
-
 	old_thread->context.esp = (uint32_t)(uintptr_t)frame;
 
-	if (old_thread->state == THREAD_RUNNING) {
-		old_thread->state = THREAD_READY;
-		ready_push(old_thread);
+	thread_t *next_thread = 0;
+
+	if (ready_head == 0) {
+		if (old_thread == idle_thread) {
+			current_slice_ticks = 0;
+			reschedule_requested = 0;
+			return 0;
+		}
+
+		if (old_thread->state == THREAD_RUNNING) {
+			current_slice_ticks = 0;
+			reschedule_requested = 0;
+			return 0;
+		}
+
+		next_thread = idle_thread;
+	} else {
+		if (old_thread != idle_thread &&
+		    old_thread->state == THREAD_RUNNING) {
+			ready_push(old_thread);
+		}
+
+		next_thread = ready_pop();
 	}
 
-	thread_t *next_thread = ready_pop();
-
 	if (next_thread == 0) {
-		current_slice_ticks = 0;
-		reschedule_requested = 0;
-		return 0;
+		next_thread = idle_thread;
 	}
 
 	validate_thread(next_thread);
@@ -296,6 +556,13 @@ uintptr_t schedule_interrupt_handler(interrupt_frame_t *frame) {
 
 void thread_on_timer_tick(interrupt_frame_t *frame) {
 	(void)frame;
+
+	if (!scheduler_initialized) {
+		return;
+	}
+
+	scheduler_ticks++;
+	wake_due_sleepers();
 
 	if (!preemption_enabled) {
 		return;
@@ -322,29 +589,79 @@ void thread_preemption_init(uint32_t requested_ticks_per_slice) {
 		requested_ticks_per_slice = 1;
 	}
 
+	irq_flags_t flags = irq_save();
+
 	ticks_per_slice = requested_ticks_per_slice;
 	current_slice_ticks = 0;
 	reschedule_requested = 0;
 	preemption_enabled = 1;
+
+	irq_restore(flags);
 
 	console_write("Threads: preemption enabled, slice ticks=");
 	console_write_u32_dec(ticks_per_slice);
 	console_putc('\n');
 }
 
+void thread_reap_zombies(void) {
+	for (;;) {
+		irq_flags_t flags = irq_save();
+		thread_t *zombie = zombie_pop();
+		irq_restore(flags);
+
+		if (zombie == 0) {
+			return;
+		}
+
+		validate_thread(zombie);
+
+		console_write("Threads: reaping zombie ");
+		console_write(zombie->name);
+		console_write(" id=");
+		console_write_u32_dec(zombie->id);
+		console_putc('\n');
+
+		void *stack = zombie->stack_base;
+		zombie->magic = 0;
+
+		if (stack != 0) {
+			kfree(stack);
+		}
+
+		kfree(zombie);
+		zombie_reaped_count++;
+	}
+}
+
 void thread_dump_state(void) {
+	irq_flags_t flags = irq_save();
+
+	uint32_t ready_count = count_list(ready_head);
+	uint32_t sleeping_count = count_list(sleep_head);
+	uint32_t zombie_count = count_list(zombie_head);
+
 	console_write("Threads: current=");
 	console_write(current_thread != 0 ? current_thread->name : "(null)");
 	console_write(" ready=");
-	console_write_u32_dec(thread_ready_count());
-	console_write(" finished=");
-	console_write_u32_dec(finished_thread_count);
+	console_write_u32_dec(ready_count);
+	console_write(" sleeping=");
+	console_write_u32_dec(sleeping_count);
+	console_write(" zombies=");
+	console_write_u32_dec(zombie_count);
+	console_write(" ticks=");
+	console_write_u32_dec((uint32_t)scheduler_ticks);
+	console_putc('\n');
+
+	console_write("Threads: zombies created=");
+	console_write_u32_dec(zombie_created_count);
+	console_write(" reaped=");
+	console_write_u32_dec(zombie_reaped_count);
 	console_putc('\n');
 
 	for (thread_t *t = ready_head; t != 0; t = t->next) {
 		validate_thread(t);
 
-		console_write("  ready thread id=");
+		console_write("  ready id=");
 		console_write_u32_dec(t->id);
 		console_write(" name=");
 		console_write(t->name);
@@ -352,6 +669,20 @@ void thread_dump_state(void) {
 		console_write(thread_state_name(t->state));
 		console_putc('\n');
 	}
+
+	for (thread_t *t = sleep_head; t != 0; t = t->next) {
+		validate_thread(t);
+
+		console_write("  sleeping id=");
+		console_write_u32_dec(t->id);
+		console_write(" name=");
+		console_write(t->name);
+		console_write(" wake=");
+		console_write_u32_dec(t->wake_tick);
+		console_putc('\n');
+	}
+
+	irq_restore(flags);
 }
 
 typedef struct thread_test_arg {
@@ -396,6 +727,8 @@ void thread_test_once(void) {
 	while (thread_ready_count() > 0) {
 		thread_yield();
 	}
+
+	thread_reap_zombies();
 
 	console_writeln("Thread test: completed software-yield multitasking test");
 	thread_dump_state();
@@ -464,6 +797,62 @@ void thread_preemption_test_wait(void) {
 		kernel_panic("preemption test counter did not advance");
 	}
 
+	thread_reap_zombies();
+
 	console_writeln("Preempt test: timer-driven preemption sanity check passed");
+	thread_dump_state();
+}
+
+typedef struct sleep_test_arg {
+	const char *label;
+	uint32_t sleep_ticks;
+} sleep_test_arg_t;
+
+static sleep_test_arg_t sleep_arg_a = {
+	.label = "S1",
+	.sleep_ticks = 4
+};
+
+static sleep_test_arg_t sleep_arg_b = {
+	.label = "S2",
+	.sleep_ticks = 8
+};
+
+static void sleep_worker(void *arg) {
+	sleep_test_arg_t *test = (sleep_test_arg_t *)arg;
+
+	console_write("Sleep test: worker ");
+	console_write(test->label);
+	console_write(" sleeping for ");
+	console_write_u32_dec(test->sleep_ticks);
+	console_writeln(" ticks");
+
+	thread_sleep_ticks(test->sleep_ticks);
+
+	console_write("Sleep test: worker ");
+	console_write(test->label);
+	console_write(" woke at tick ");
+	console_write_u32_dec(thread_ticks());
+	console_putc('\n');
+
+	sleep_test_done_count++;
+}
+
+void thread_sleep_test_once(void) {
+	console_writeln("Sleep test: starting blocking sleep test");
+
+	sleep_test_done_count = 0;
+
+	thread_create("sleep-s1", sleep_worker, &sleep_arg_a);
+	thread_create("sleep-s2", sleep_worker, &sleep_arg_b);
+
+	while (sleep_test_done_count < 2) {
+		thread_sleep_ticks(1);
+		thread_reap_zombies();
+	}
+
+	thread_reap_zombies();
+
+	console_writeln("Sleep test: blocking sleep sanity check passed");
 	thread_dump_state();
 }

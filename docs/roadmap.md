@@ -30,7 +30,7 @@ permissions
 security boundaries
 ```
 
-This roadmap is not a rigid promise that every chapter title will remain exactly the same. As the operating system grows, some topics may split into multiple chapters and others may merge. The first ten chapters already compressed the original bootstrapping, interrupt, and early memory-management plan into a faster bring-up path. This updated roadmap uses the actual Chapter 1-10 sequence as the baseline and then maps the next major steps from there.
+This roadmap is not a rigid promise that every chapter title will remain exactly the same. As the operating system grows, some topics may split into multiple chapters and others may merge. The first eleven chapters already compressed the original bootstrapping, interrupt, and early memory-management plan into a faster bring-up path. This updated roadmap uses the actual Chapter 1-11 sequence as the baseline and then maps the next major steps from there.
 
 ---
 
@@ -55,9 +55,8 @@ This roadmap is not a rigid promise that every chapter title will remain exactly
 |       8 | Move the kernel heap onto VMM-backed virtual pages      |
 |       9 | Cooperative kernel threads with a software context switch |
 |      10 | Timer-driven preemptive multitasking                     |
-|      11 | Kernel memory debugging helpers                          |
-|      12 | Heap diagnostics, poisoning, and allocation assertions   |
-|      13 | Preparing address-space abstractions for later user mode |
+|      11 | Blocking primitives, sleep queues, and zombie reaping   |
+|      12 | Wait queues and lock-protected wakeups                   |
 
 ---
 
@@ -81,16 +80,16 @@ This roadmap is not a rigid promise that every chapter title will remain exactly
 | Chapter | Topic                           |
 | ------: | ------------------------------- |
 |      21 | Scheduler locking and critical sections |
-|      22 | Idle thread                     |
-|      23 | Sleep queues                    |
-|      24 | Zombie thread cleanup           |
-|      25 | Wait queues                     |
-|      26 | Mutexes                         |
-|      27 | Semaphores                      |
-|      28 | Scheduler hygiene and debugging |
-|      29 | Thread priority policy          |
-|      30 | Load balancing basics           |
-|      31 | Scheduler instrumentation       |
+|      22 | Wait queues                     |
+|      23 | Mutexes                         |
+|      24 | Semaphores                      |
+|      25 | Scheduler hygiene and debugging  |
+|      26 | Thread priority policy           |
+|      27 | Load balancing basics            |
+|      28 | Scheduler instrumentation        |
+|      29 | CPU affinity basics              |
+|      30 | Fairness policy                  |
+|      31 | Lock contention profiling        |
 
 ---
 

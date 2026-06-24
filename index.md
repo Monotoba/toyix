@@ -35,3 +35,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 8: Moving the Heap onto Virtual Memory](articles/chapter_08.md)
 - [Chapter 9: Cooperative Multitasking and Kernel Threads](articles/chapter_09.md)
 - [Chapter 10: Timer-Driven Preemptive Multitasking](articles/chapter_10.md)
+- [Chapter 11: Blocking Primitives, Sleep Queues, and Scheduler Hygiene](articles/chapter_11.md)

@@ -93,7 +93,7 @@ run: iso
 test: iso
 	@mkdir -p build
 	@rm -f build/test.log
-	@timeout 8s $(QEMU) \
+	@timeout 10s $(QEMU) \
 		-boot d \
 		-cdrom build/toyix.iso \
 		-display none \
@@ -109,17 +109,18 @@ test: iso
 	grep -q "Paging test: identity-mapped kernel data is readable/writable" build/test.log
 	grep -q "Heap: initialized virtual heap with 4 page(s)" build/test.log
 	grep -q "Heap test: VMM-backed allocation/free sanity check passed" build/test.log
-	grep -q "Threads: interrupt-frame scheduler initialized" build/test.log
+	grep -q "Threads: blocking scheduler initialized" build/test.log
 	grep -q "Thread test: worker A step 0" build/test.log
 	grep -q "Thread test: worker B step 0" build/test.log
 	grep -q "Thread test: completed software-yield multitasking test" build/test.log
 	grep -q "Threads: preemption enabled, slice ticks=2" build/test.log
 	grep -q "Preempt test: timer-driven preemption sanity check passed" build/test.log
+	grep -q "Sleep test: blocking sleep sanity check passed" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, cooperative yield, and preemption smoke test passed."
+	@echo "Boot, memory, heap, cooperative yield, preemption, and blocking sleep smoke test passed."
 
 test-exception:
 	$(MAKE) clean

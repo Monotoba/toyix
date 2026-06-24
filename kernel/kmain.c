@@ -86,12 +86,13 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     console_writeln("Interrupts: enabled");
 
     thread_preemption_test_wait();
+    thread_sleep_test_once();
 
     pit_wait_ticks(3);
     console_writeln("Timer: observed 3 ticks");
 
     console_writeln("Try typing in the QEMU window.");
-    console_writeln("Next stop: move heap growth onto VMM-mapped virtual pages.");
+    console_writeln("Next stop: locks, wait queues, and keyboard input buffering.");
 
     kernel_idle();
 }
