@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
 [![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20IRQ%20%2B%20PMM%20%2B%20paging%20%2B%20VMM%20%2B%20heap%20%2B%20exception-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, and verifies boot behavior through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads and timer-driven preemption, and verifies boot behavior through automated QEMU smoke tests.
 
 <p>
   <img src="docs/assets/toyix-preview.png" alt="Toyix preview" width="360">
@@ -38,7 +38,8 @@ Toyix is a small Linux-style teaching operating system written in C and x86 asse
 - VMM-backed virtual heap with `kmalloc`, `kcalloc`, and `kfree`
 - Heap block splitting, coalescing, statistics, and sanity checks
 - Cooperative kernel threads with a software context switch and round-robin yield path
-- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, deliberate invalid-opcode exception handling, and deliberate page-fault handling
+- Timer-driven preemption through a dedicated scheduling interrupt and interrupt-frame restore path
+- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, preemption, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
 ## Repository Layout
@@ -123,6 +124,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 7](articles/chapter_07.md)
 - [Chapter 8](articles/chapter_08.md)
 - [Chapter 9](articles/chapter_09.md)
+- [Chapter 10](articles/chapter_10.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

@@ -4,6 +4,12 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_10] - 2026-06-24
+
+- Add timer-driven preemptive multitasking with a dedicated scheduling interrupt.
+- Add interrupt-frame-based thread switching and timer-triggered rescheduling.
+- Update Chapter 10, the README, the series index, and the Makefile smoke expectations.
+
 ## [Chapter_09] - 2026-06-24
 
 - Add cooperative kernel threads with per-thread stacks and a software context switch.
