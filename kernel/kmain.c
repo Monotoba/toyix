@@ -13,6 +13,7 @@
 #include "kernel/heap.h"
 #include "kernel/panic.h"
 #include "kernel/pmm.h"
+#include "kernel/thread.h"
 #include "kernel/vmem.h"
 
 extern const console_driver_t serial_console_driver;
@@ -56,6 +57,9 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     heap_init(4);
     heap_test_once();
+
+    threading_init();
+    thread_test_once();
 
 #ifdef TOYIX_TRIGGER_PAGE_FAULT
     console_writeln("Triggering test page fault at 0xC0000000...");

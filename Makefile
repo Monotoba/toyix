@@ -31,6 +31,7 @@ LDFLAGS := -T linker.ld \
 
 OBJS := \
     build/arch/x86/boot.o \
+    build/arch/x86/context_switch.o \
     build/arch/x86/gdt.o \
     build/arch/x86/gdt_flush.o \
     build/arch/x86/idt.o \
@@ -48,6 +49,7 @@ OBJS := \
     build/kernel/heap.o \
     build/kernel/panic.o \
     build/kernel/pmm.o \
+    build/kernel/thread.o \
     build/kernel/vmem.o \
     build/kernel/lib/mem.o \
     build/drivers/console/serial.o \
@@ -107,11 +109,15 @@ test: iso
 	grep -q "Paging test: identity-mapped kernel data is readable/writable" build/test.log
 	grep -q "Heap: initialized virtual heap with 4 page(s)" build/test.log
 	grep -q "Heap test: VMM-backed allocation/free sanity check passed" build/test.log
+	grep -q "Threads: cooperative scheduler initialized" build/test.log
+	grep -q "Thread test: worker A step 0" build/test.log
+	grep -q "Thread test: worker B step 0" build/test.log
+	grep -q "Thread test: completed cooperative multitasking test" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, IRQ, PMM, paging, VMM, and heap smoke test passed."
+	@echo "Boot, memory, heap, and cooperative threading smoke test passed."
 
 test-exception:
 	$(MAKE) clean

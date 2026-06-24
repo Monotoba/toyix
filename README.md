@@ -37,7 +37,8 @@ Toyix is a small Linux-style teaching operating system written in C and x86 asse
 - Generic kernel `vmem` wrapper for architecture-neutral heap access
 - VMM-backed virtual heap with `kmalloc`, `kcalloc`, and `kfree`
 - Heap block splitting, coalescing, statistics, and sanity checks
-- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, deliberate invalid-opcode exception handling, and deliberate page-fault handling
+- Cooperative kernel threads with a software context switch and round-robin yield path
+- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
 ## Repository Layout
@@ -121,6 +122,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 6](articles/chapter_06.md)
 - [Chapter 7](articles/chapter_07.md)
 - [Chapter 8](articles/chapter_08.md)
+- [Chapter 9](articles/chapter_09.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

@@ -4,6 +4,12 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_09] - 2026-06-24
+
+- Add cooperative kernel threads with per-thread stacks and a software context switch.
+- Add a round-robin `thread_yield()` path and a two-thread smoke test.
+- Update Chapter 9, the README, the series index, the roadmap, and the Makefile test expectations.
+
 ## [Chapter_08] - 2026-06-24
 
 - Move the heap onto a VMM-backed virtual address range.

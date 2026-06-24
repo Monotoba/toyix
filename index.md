@@ -33,3 +33,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 6: Building the First Kernel Heap](articles/chapter_06.md)
 - [Chapter 7: A Real Virtual Memory Mapping Layer](articles/chapter_07.md)
 - [Chapter 8: Moving the Heap onto Virtual Memory](articles/chapter_08.md)
+- [Chapter 9: Cooperative Multitasking and Kernel Threads](articles/chapter_09.md)

@@ -53,7 +53,7 @@ This roadmap is not a rigid promise that every chapter title will remain exactly
 | Chapter | Topic                                                   |
 | ------: | ------------------------------------------------------- |
 |       8 | Move the kernel heap onto VMM-backed virtual pages      |
-|       9 | Mapping and unmapping cleanup                           |
+|       9 | Cooperative kernel threads and context switching        |
 |      10 | Kernel memory debugging helpers                         |
 |      11 | Heap diagnostics, poisoning, and allocation assertions   |
 |      12 | Preparing address-space abstractions for later user mode |
@@ -79,7 +79,7 @@ This roadmap is not a rigid promise that every chapter title will remain exactly
 
 | Chapter | Topic                           |
 | ------: | ------------------------------- |
-|      21 | Cooperative kernel threads      |
+|      21 | Scheduler architecture          |
 |      22 | Context switching               |
 |      23 | Preemptive scheduling           |
 |      24 | Timer-driven task switching     |
