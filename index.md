@@ -32,3 +32,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 5: Turning On Paging](articles/chapter_05.md)
 - [Chapter 6: Building the First Kernel Heap](articles/chapter_06.md)
 - [Chapter 7: A Real Virtual Memory Mapping Layer](articles/chapter_07.md)
+- [Chapter 8: Moving the Heap onto Virtual Memory](articles/chapter_08.md)

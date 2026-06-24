@@ -48,6 +48,7 @@ OBJS := \
     build/kernel/heap.o \
     build/kernel/panic.o \
     build/kernel/pmm.o \
+    build/kernel/vmem.o \
     build/kernel/lib/mem.o \
     build/drivers/console/serial.o \
     build/drivers/console/vga_text.o \
@@ -104,13 +105,13 @@ test: iso
 	grep -q "PMM test: allocation/free sanity check passed" build/test.log
 	grep -q "Paging: enabled with identity map of first 16 MiB" build/test.log
 	grep -q "Paging test: identity-mapped kernel data is readable/writable" build/test.log
-	grep -q "Heap: initialized with 4 page(s)" build/test.log
-	grep -q "Heap test: allocation/free sanity check passed" build/test.log
+	grep -q "Heap: initialized virtual heap with 4 page(s)" build/test.log
+	grep -q "Heap test: VMM-backed allocation/free sanity check passed" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, IRQ, PMM, paging, and heap smoke test passed."
+	@echo "Boot, IRQ, PMM, paging, VMM, and heap smoke test passed."
 
 test-exception:
 	$(MAKE) clean

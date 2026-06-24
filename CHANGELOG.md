@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_08] - 2026-06-24
+
+- Move the heap onto a VMM-backed virtual address range.
+- Add the generic `kernel/vmem` wrapper over the x86 VMM.
+- Add heap growth through virtual page mapping and large-allocation smoke coverage.
+- Update Chapter 8, the README, the changelog, the series index, and the Makefile test expectations.
+
 ## [Chapter_07] - 2026-06-23
 
 - Add a virtual memory manager with page mapping, unmapping, and translation helpers.

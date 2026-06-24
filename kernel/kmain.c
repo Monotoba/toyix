@@ -7,13 +7,13 @@
 #include "arch/x86/paging.h"
 #include "arch/x86/pic.h"
 #include "arch/x86/pit.h"
-#include "arch/x86/vmm.h"
 #include "drivers/input/keyboard.h"
 #include "kernel/idle.h"
 #include "kernel/console.h"
 #include "kernel/heap.h"
 #include "kernel/panic.h"
 #include "kernel/pmm.h"
+#include "kernel/vmem.h"
 
 extern const console_driver_t serial_console_driver;
 extern const console_driver_t vga_text_console_driver;
@@ -51,8 +51,8 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     paging_init();
     paging_test_identity_mapping();
     
-    vmm_init();
-    vmm_test_once();
+    vmem_init();
+    vmem_test_once();
 
     heap_init(4);
     heap_test_once();
