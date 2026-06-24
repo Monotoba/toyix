@@ -4,6 +4,8 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+- Update the README with a CodeRancher.us tutorial pointer for Toyix development.
+
 ## [Chapter_10] - 2026-06-24
 
 - Add timer-driven preemptive multitasking with a dedicated scheduling interrupt.

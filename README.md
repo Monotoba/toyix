@@ -8,6 +8,8 @@
 
 Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads and timer-driven preemption, and verifies boot behavior through automated QEMU smoke tests.
 
+Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us).
+
 <p>
   <img src="docs/assets/toyix-preview.png" alt="Toyix preview" width="360">
 </p>
