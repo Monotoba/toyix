@@ -36,3 +36,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 9: Cooperative Multitasking and Kernel Threads](articles/chapter_09.md)
 - [Chapter 10: Timer-Driven Preemptive Multitasking](articles/chapter_10.md)
 - [Chapter 11: Blocking Primitives, Sleep Queues, and Scheduler Hygiene](articles/chapter_11.md)
+- [Chapter 12: Wait Queues and Blocking Keyboard Input](articles/chapter_12.md)

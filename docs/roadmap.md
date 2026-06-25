@@ -30,7 +30,7 @@ permissions
 security boundaries
 ```
 
-This roadmap is not a rigid promise that every chapter title will remain exactly the same. As the operating system grows, some topics may split into multiple chapters and others may merge. The first eleven chapters already compressed the original bootstrapping, interrupt, and early memory-management plan into a faster bring-up path. This updated roadmap uses the actual Chapter 1-11 sequence as the baseline and then maps the next major steps from there.
+This roadmap is not a rigid promise that every chapter title will remain exactly the same. As the operating system grows, some topics may split into multiple chapters and others may merge. The first twelve chapters already compressed the original bootstrapping, interrupt, and early memory-management plan into a faster bring-up path. This updated roadmap uses the actual Chapter 1-12 sequence as the baseline and then maps the next major steps from there.
 
 ---
 
@@ -57,6 +57,7 @@ This roadmap is not a rigid promise that every chapter title will remain exactly
 |      10 | Timer-driven preemptive multitasking                     |
 |      11 | Blocking primitives, sleep queues, and zombie reaping   |
 |      12 | Wait queues and lock-protected wakeups                   |
+|      13 | Blocking keyboard input and first device handoff        |
 
 ---
 

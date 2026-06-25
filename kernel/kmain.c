@@ -87,6 +87,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     thread_preemption_test_wait();
     thread_sleep_test_once();
+    keyboard_buffer_test_once();
 
     pit_wait_ticks(3);
     console_writeln("Timer: observed 3 ticks");

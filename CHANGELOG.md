@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_12] - 2026-06-24
+
+- Add wait queues with interrupt-safe blocking and wakeup helpers.
+- Add a blocking keyboard input buffer with synthetic input testing.
+- Add `thread_block_current()` and `thread_wake()` for wait-queue handoff.
+- Update Chapter 12, the README, the roadmap, the series index, and the Makefile smoke expectations.
+
 ## [Chapter_11] - 2026-06-24
 
 - Add interrupt-safe blocking primitives with `irq_save()` and `irq_restore()`.

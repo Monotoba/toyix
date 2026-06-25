@@ -415,6 +415,45 @@ void thread_yield(void) {
 	__asm__ volatile ("int $0x30" ::: "memory");
 }
 
+void thread_block_current(void) {
+	irq_flags_t flags = irq_save();
+
+	thread_t *self = current_thread;
+	validate_thread(self);
+
+	if (self == idle_thread) {
+		irq_restore(flags);
+		kernel_panic("idle thread attempted to block");
+	}
+
+	if (self->state != THREAD_RUNNING) {
+		irq_restore(flags);
+		kernel_panic("thread_block_current called on non-running thread");
+	}
+
+	self->state = THREAD_BLOCKED;
+	reschedule_requested = 1;
+
+	irq_restore(flags);
+}
+
+void thread_wake(thread_t *thread) {
+	if (thread == 0) {
+		return;
+	}
+
+	irq_flags_t flags = irq_save();
+
+	validate_thread(thread);
+
+	if (thread->state == THREAD_BLOCKED) {
+		ready_push(thread);
+		reschedule_requested = 1;
+	}
+
+	irq_restore(flags);
+}
+
 void thread_sleep_ticks(uint32_t ticks) {
 	if (ticks == 0) {
 		thread_yield();

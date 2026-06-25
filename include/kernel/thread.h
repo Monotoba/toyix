@@ -56,6 +56,9 @@ thread_t *thread_current(void);
 void thread_yield(void);
 void thread_exit(void) __attribute__((noreturn));
 
+void thread_block_current(void);
+void thread_wake(thread_t *thread);
+
 void thread_sleep_ticks(uint32_t ticks);
 
 void thread_on_timer_tick(interrupt_frame_t *frame);
