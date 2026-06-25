@@ -6,6 +6,9 @@ on:
       - "Chapter_*"
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   build-iso:
     name: Build release ISO
