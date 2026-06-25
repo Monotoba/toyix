@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_14] - 2026-06-25
+
+- Add terminal readline support with echo, newline, fixed-size buffers, and backspace handling.
+- Add VGA text backspace support for terminal editing.
+- Add an interactive kernel monitor with help, ticks, threads, mem, heap, sleep, echo, and clear commands.
+- Add terminal and monitor boot-time sanity tests.
+- Update Chapter 14, the README, the series index, and smoke suite expectations.
+
 ## [Chapter_13] - 2026-06-25
 
 - Add blocking mutexes and counting semaphores on top of wait queues.

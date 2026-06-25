@@ -38,3 +38,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 11: Blocking Primitives, Sleep Queues, and Scheduler Hygiene](articles/chapter_11.md)
 - [Chapter 12: Wait Queues and Blocking Keyboard Input](articles/chapter_12.md)
 - [Chapter 13: Mutexes, Semaphores, and a Console Lock](articles/chapter_13.md)
+- [Chapter 14: Terminal Line Discipline and a Kernel Monitor](articles/chapter_14.md)

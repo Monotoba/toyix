@@ -73,9 +73,29 @@ static void vga_newline(void) {
 }
 
 
+static void vga_backspace(void) {
+    if (column > 0) {
+        column--;
+        vga_buffer[row * VGA_WIDTH + column] = vga_entry(' ', color);
+        return;
+    }
+
+    if (row > 0) {
+        row--;
+        column = VGA_WIDTH - 1;
+        vga_buffer[row * VGA_WIDTH + column] = vga_entry(' ', color);
+    }
+}
+
+
 static void vga_putc(char c) {
     if (c == '\n') {
         vga_newline();
+        return;
+    }
+
+    if (c == '\b') {
+        vga_backspace();
         return;
     }
     
@@ -106,5 +126,4 @@ const console_driver_t vga_text_console_driver = {
     .init = vga_init,
     .putc = vga_putc
 };
-
 

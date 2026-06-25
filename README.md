@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
 [![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20memory%20%2B%20threads%20%2B%20sync%20%2B%20exceptions-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, and blocking keyboard input, and verifies boot behavior through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, and an interactive kernel monitor, and verifies boot behavior through automated QEMU smoke tests.
 
 Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us).
 
@@ -44,7 +44,9 @@ Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us
 - Blocking sleep primitives with an idle thread, sleep queue, zombie queue, and zombie reaping
 - Blocking keyboard input with a wait queue and ring-buffered character delivery
 - Blocking mutexes, counting semaphores, and a console output lock
-- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, preemption, blocking sleep, synchronization, blocking keyboard input, deliberate invalid-opcode exception handling, and deliberate page-fault handling
+- Terminal readline support with echo, newline, fixed-size buffers, and backspace handling
+- Interactive kernel monitor commands for help, ticks, thread state, PMM stats, heap stats, sleep, echo, and clear
+- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, preemption, blocking sleep, synchronization, blocking keyboard input, terminal readline, monitor commands, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
 ## Repository Layout
@@ -115,7 +117,7 @@ Run only the deliberate page-fault test:
 make test-page-fault
 ```
 
-The smoke suite builds the ISO, boots it under QEMU, captures serial output, verifies the expected early kernel, IRQ, PMM, paging, VMM, heap, threading, synchronization, keyboard, and timer messages, then rebuilds with a test-only invalid instruction path to verify CPU exception reporting and the panic halt path. The page-fault target separately rebuilds with a test-only unmapped memory access to verify page-fault reporting and the panic halt path.
+The smoke suite builds the ISO, boots it under QEMU, captures serial output, verifies the expected early kernel, IRQ, PMM, paging, VMM, heap, threading, synchronization, keyboard, terminal, monitor, and timer messages, then rebuilds with a test-only invalid instruction path to verify CPU exception reporting and the panic halt path. The page-fault target separately rebuilds with a test-only unmapped memory access to verify page-fault reporting and the panic halt path.
 
 ## Documentation
 
@@ -133,6 +135,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 11](articles/chapter_11.md)
 - [Chapter 12](articles/chapter_12.md)
 - [Chapter 13](articles/chapter_13.md)
+- [Chapter 14](articles/chapter_14.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

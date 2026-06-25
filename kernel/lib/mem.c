@@ -61,6 +61,102 @@ int memcmp(const void *left, const void *right, size_t count) {
 }
 
 
+size_t kstrlen(const char *text) {
+    size_t length = 0;
+
+    if (text == 0) {
+        return 0;
+    }
+
+    while (text[length] != '\0') {
+        length++;
+    }
+
+    return length;
+}
+
+
+int kstrcmp(const char *left, const char *right) {
+    if (left == 0 && right == 0) {
+        return 0;
+    }
+
+    if (left == 0) {
+        return -1;
+    }
+
+    if (right == 0) {
+        return 1;
+    }
+
+    while (*left != '\0' && *right != '\0') {
+        if (*left != *right) {
+            return (unsigned char)*left - (unsigned char)*right;
+        }
+
+        left++;
+        right++;
+    }
+
+    return (unsigned char)*left - (unsigned char)*right;
+}
+
+
+int kstrncmp(const char *left, const char *right, size_t count) {
+    if (count == 0) {
+        return 0;
+    }
+
+    if (left == 0 && right == 0) {
+        return 0;
+    }
+
+    if (left == 0) {
+        return -1;
+    }
+
+    if (right == 0) {
+        return 1;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        unsigned char a = (unsigned char)left[i];
+        unsigned char b = (unsigned char)right[i];
+
+        if (a != b) {
+            return (int)a - (int)b;
+        }
+
+        if (a == '\0') {
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
+
+char *kstrcpy(char *dest, const char *src) {
+    char *original = dest;
+
+    if (dest == 0) {
+        return 0;
+    }
+
+    if (src == 0) {
+        dest[0] = '\0';
+        return dest;
+    }
+
+    while (*src != '\0') {
+        *dest++ = *src++;
+    }
+
+    *dest = '\0';
+
+    return original;
+}
+
 
 
 

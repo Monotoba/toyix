@@ -11,9 +11,11 @@
 #include "kernel/idle.h"
 #include "kernel/console.h"
 #include "kernel/heap.h"
+#include "kernel/monitor.h"
 #include "kernel/panic.h"
 #include "kernel/pmm.h"
 #include "kernel/sync.h"
+#include "kernel/terminal.h"
 #include "kernel/thread.h"
 #include "kernel/vmem.h"
 
@@ -95,11 +97,18 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     thread_sleep_test_once();
     keyboard_buffer_test_once();
 
+    terminal_init();
+    terminal_test_once();
+
+    monitor_init();
+    monitor_test_once();
+    monitor_start();
+
     pit_wait_ticks(3);
     console_writeln("Timer: observed 3 ticks");
 
-    console_writeln("Try typing in the QEMU window.");
-    console_writeln("Next stop: terminal line discipline and a kernel monitor.");
+    console_writeln("Interactive kernel monitor is running.");
+    console_writeln("Try: help, ticks, threads, mem, heap, echo hello");
 
     kernel_idle();
 }
