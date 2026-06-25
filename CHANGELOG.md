@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_13] - 2026-06-25
+
+- Add blocking mutexes and counting semaphores on top of wait queues.
+- Add synchronized console output with raw console helpers for already-locked paths.
+- Add mutex, semaphore, and console-lock boot-time sanity tests.
+- Update Chapter 13, the README, the series index, and the smoke suite expectations.
+
 ## [Chapter_12] - 2026-06-24
 
 - Add wait queues with interrupt-safe blocking and wakeup helpers.

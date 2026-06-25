@@ -4,5 +4,6 @@ set -euo pipefail
 make clean
 make test
 make test-exception
+make test-page-fault
 
-echo "All smoke checks passed."
+echo "All Chapter 13 checks passed."

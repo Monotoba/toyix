@@ -49,6 +49,7 @@ OBJS := \
     build/kernel/heap.o \
     build/kernel/panic.o \
     build/kernel/pmm.o \
+    build/kernel/sync.o \
     build/kernel/thread.o \
     build/kernel/vmem.o \
     build/kernel/wait_queue.o \
@@ -118,12 +119,15 @@ test: iso
 	grep -q "Preempt test: timer-driven preemption sanity check passed" build/test.log
 	grep -q "Sleep test: blocking sleep sanity check passed" build/test.log
 	grep -q "Keyboard: IRQ1 handler and input buffer installed" build/test.log
+	grep -q "Console: output mutex enabled" build/test.log
+	grep -q "Sync test: mutex/semaphore sanity check passed" build/test.log
+	grep -q "Console lock test: non-interleaved line output sanity check passed" build/test.log
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, cooperative yield, preemption, sleep, and keyboard blocking I/O smoke test passed."
+	@echo "Boot, memory, heap, sync, preemption, sleep, and keyboard blocking I/O smoke test passed."
 
 test-exception:
 	$(MAKE) clean

@@ -13,6 +13,7 @@
 #include "kernel/heap.h"
 #include "kernel/panic.h"
 #include "kernel/pmm.h"
+#include "kernel/sync.h"
 #include "kernel/thread.h"
 #include "kernel/vmem.h"
 
@@ -72,7 +73,6 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     keyboard_init();
 
     thread_preemption_init(2);
-    thread_preemption_test_prepare();
 
     console_writeln("Interrupt hardware: configured");
 
@@ -85,6 +85,12 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     console_writeln("Interrupts: enabled");
 
+    console_locking_init();
+
+    sync_test_once();
+    console_lock_test_once();
+
+    thread_preemption_test_prepare();
     thread_preemption_test_wait();
     thread_sleep_test_once();
     keyboard_buffer_test_once();
@@ -93,7 +99,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     console_writeln("Timer: observed 3 ticks");
 
     console_writeln("Try typing in the QEMU window.");
-    console_writeln("Next stop: locks, wait queues, and keyboard input buffering.");
+    console_writeln("Next stop: terminal line discipline and a kernel monitor.");
 
     kernel_idle();
 }

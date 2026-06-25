@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
 [![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20IRQ%20%2B%20PMM%20%2B%20paging%20%2B%20VMM%20%2B%20heap%20%2B%20exception-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, and blocking keyboard input, and verifies boot behavior through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, and blocking keyboard input, and verifies boot behavior through automated QEMU smoke tests.
 
 Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us).
 
@@ -43,7 +43,8 @@ Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us
 - Timer-driven preemption through a dedicated scheduling interrupt and interrupt-frame restore path
 - Blocking sleep primitives with an idle thread, sleep queue, zombie queue, and zombie reaping
 - Blocking keyboard input with a wait queue and ring-buffered character delivery
-- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, preemption, blocking sleep, blocking keyboard input, deliberate invalid-opcode exception handling, and deliberate page-fault handling
+- Blocking mutexes, counting semaphores, and a console output lock
+- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, preemption, blocking sleep, synchronization, blocking keyboard input, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
 ## Repository Layout
@@ -131,6 +132,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 10](articles/chapter_10.md)
 - [Chapter 11](articles/chapter_11.md)
 - [Chapter 12](articles/chapter_12.md)
+- [Chapter 13](articles/chapter_13.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License
