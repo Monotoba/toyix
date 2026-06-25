@@ -910,134 +910,8 @@ Add:
 #include "kernel/sync.h"
 ```
 
-Then call:
-
-```c
-console_locking_init();
-sync_test_once();
-console_lock_test_once();
-```
-
-after `threading_init()` and `thread_test_once()`, but before the preemption-heavy tests are allowed to run too long.
-
-Here is the full updated file.
-
-```c
-// kernel/kmain.c
-#include <stdint.h>
-#include "arch/x86/gdt.h"
-#include "arch/x86/idt.h"
-#include "arch/x86/interrupts.h"
-#include "arch/x86/multiboot.h"
-#include "arch/x86/paging.h"
-#include "arch/x86/pic.h"
-#include "arch/x86/pit.h"
-#include "drivers/input/keyboard.h"
-#include "kernel/idle.h"
-#include "kernel/console.h"
-#include "kernel/heap.h"
-#include "kernel/panic.h"
-#include "kernel/pmm.h"
-#include "kernel/sync.h"
-#include "kernel/thread.h"
-#include "kernel/vmem.h"
-
-extern const console_driver_t serial_console_driver;
-extern const console_driver_t vga_text_console_driver;
-
-void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
-    console_register(&serial_console_driver);
-    console_register(&vga_text_console_driver);
-    console_init_all();
-
-    console_writeln("Toyix kernel alive");
-
-    if (multiboot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-        console_writeln("Boot protocol: Multiboot OK");
-    } else {
-        console_write("Boot protocol: unexpected magic ");
-        console_write_hex32(multiboot_magic);
-        console_putc('\n');
-        kernel_panic("unsupported boot protocol");
-    }
-
-    const multiboot_info_t *mbi =
-        (const multiboot_info_t *)(uintptr_t)multiboot_info_addr;
-
-    console_write("Multiboot info at ");
-    console_write_hex32(multiboot_info_addr);
-    console_putc('\n');
-
-    gdt_init();
-    idt_init();
-    pic_init();
-
-    pmm_init(mbi);
-    pmm_test_once();
-
-    paging_init();
-    paging_test_identity_mapping();
-
-    vmem_init();
-    vmem_test_once();
-
-    heap_init(4);
-    heap_test_once();
-
-    threading_init();
-    thread_test_once();
-
-    console_locking_init();
-    sync_test_once();
-    console_lock_test_once();
-
-#ifdef TOYIX_TRIGGER_PAGE_FAULT
-    console_writeln("Triggering test page fault at 0xC0000000...");
-    volatile uint32_t *bad = (volatile uint32_t *)0xC0000000u;
-    uint32_t value = *bad;
-    (void)value;
-#endif
-
-    pit_init(100);
-    keyboard_init();
-
-    thread_preemption_init(2);
-    thread_preemption_test_prepare();
-
-    console_writeln("Interrupt hardware: configured");
-
-#ifdef TOYIX_TRIGGER_TEST_EXCEPTION
-    console_writeln("Triggering test exception with UD2...");
-    __asm__ volatile ("ud2");
-#endif
-
-    interrupts_enable();
-
-    console_writeln("Interrupts: enabled");
-
-    thread_preemption_test_wait();
-    thread_sleep_test_once();
-    keyboard_buffer_test_once();
-
-    pit_wait_ticks(3);
-    console_writeln("Timer: observed 3 ticks");
-
-    console_writeln("Try typing in the QEMU window.");
-    console_writeln("Next stop: terminal line discipline and a kernel monitor.");
-
-    kernel_idle();
-}
-```
-
----
-
-# 13. Problem: `sync_test_once()` uses sleeps before PIT is initialized
-
-The `sync_test_once()` above calls `thread_sleep_ticks()`. That requires timer ticks.
-
-Therefore, we need to move PIT initialization earlier, before synchronization tests that sleep.
-
-Use this corrected ordering instead:
+The synchronization tests call `thread_sleep_ticks()`, so PIT initialization and
+interrupt enabling must happen before those tests run. Use this boot order:
 
 ```text
 threading_init()
@@ -1046,6 +920,7 @@ pit_init(100)
 keyboard_init()
 thread_preemption_init(2)
 interrupts_enable()
+console_locking_init()
 sync_test_once()
 console_lock_test_once()
 preemption test
@@ -1168,7 +1043,7 @@ This corrected ordering is important.
 
 ---
 
-# 14. Update `Makefile`
+# 13. Update `Makefile`
 
 Add:
 
@@ -1243,7 +1118,7 @@ test: iso
 
 ---
 
-# 15. Update `tests/smoke.sh`
+# 14. Update `tests/smoke.sh`
 
 ```bash
 #!/usr/bin/env bash
@@ -1266,7 +1141,7 @@ chmod +x tests/smoke.sh
 
 ---
 
-# 16. Expected output
+# 15. Expected output
 
 A successful boot should now include:
 
@@ -1296,7 +1171,7 @@ Console lock test: non-interleaved line output sanity check passed
 
 ---
 
-# 17. Common failures
+# 16. Common failures
 
 ## Failure: `mutex_lock attempted recursive lock`
 
@@ -1365,7 +1240,7 @@ Also check that `semaphore_wait()` uses `while`, not `if`.
 
 ---
 
-# 18. What this chapter achieved
+# 17. What this chapter achieved
 
 We now have real synchronization primitives:
 
@@ -1406,19 +1281,7 @@ That is the right layering.
 
 ---
 
-# 19. Commit this chapter
-
-After tests pass:
-
-```bash
-git status
-git add .
-git commit -m "Add mutexes, semaphores, and console locking"
-```
-
----
-
-# 20. Next chapter
+# 18. Next chapter
 
 The next useful chapter is a **terminal line discipline and kernel monitor**.
 
@@ -1441,6 +1304,24 @@ commands:
 
 That gives the OS its first interactive control surface.
 
-[1]: https://wiki.osdev.org/Mutual_Exclusion?utm_source=chatgpt.com "Mutual Exclusion"
-[2]: https://wiki.osdev.org/Semaphore?utm_source=chatgpt.com "Semaphore"
-[3]: https://wiki.osdev.org/Spinlock?utm_source=chatgpt.com "Spinlock"
+[1]: https://wiki.osdev.org/Mutual_Exclusion "Mutual Exclusion"
+[2]: https://wiki.osdev.org/Semaphore "Semaphore"
+[3]: https://wiki.osdev.org/Spinlock "Spinlock"
+
+---
+
+# 19. Resources
+
+- [Chapter 13 source release](https://github.com/Monotoba/toyix/releases/tag/Chapter_13)
+- [Chapter 13 repository tree](https://github.com/Monotoba/toyix/tree/Chapter_13)
+- [OSDev Wiki: Mutual Exclusion](https://wiki.osdev.org/Mutual_Exclusion)
+- [OSDev Wiki: Semaphore](https://wiki.osdev.org/Semaphore)
+- [OSDev Wiki: Spinlock](https://wiki.osdev.org/Spinlock)
+
+---
+
+# 20. Closure
+
+The kernel now has wait queues, blocking sleeps, mutexes, semaphores, and synchronized console output. That is enough synchronization structure to start building interactive kernel services without every shared resource becoming a race.
+
+Happy Coding!

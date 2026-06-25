@@ -12,8 +12,8 @@
 .DS_Store
 
 # Local tooling and private workspace state
+AGENTS.md
 .agents/
 .codex/
 .env
 .env.*
-

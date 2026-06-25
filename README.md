@@ -4,7 +4,7 @@
 [![Release](https://github.com/Monotoba/toyix/actions/workflows/release.yml/badge.svg)](https://github.com/Monotoba/toyix/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
-[![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20IRQ%20%2B%20PMM%20%2B%20paging%20%2B%20VMM%20%2B%20heap%20%2B%20exception-blue.svg)](tests/smoke.sh)
+[![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20memory%20%2B%20threads%20%2B%20sync%20%2B%20exceptions-blue.svg)](tests/smoke.sh)
 
 Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, and blocking keyboard input, and verifies boot behavior through automated QEMU smoke tests.
 
@@ -115,7 +115,7 @@ Run only the deliberate page-fault test:
 make test-page-fault
 ```
 
-The smoke suite builds the ISO, boots it under QEMU, captures serial output, verifies the expected early kernel, IRQ, PMM, paging, VMM, and heap messages, then rebuilds with a test-only invalid instruction path to verify CPU exception reporting and the panic halt path. The page-fault target separately rebuilds with a test-only unmapped memory access to verify page-fault reporting and the panic halt path.
+The smoke suite builds the ISO, boots it under QEMU, captures serial output, verifies the expected early kernel, IRQ, PMM, paging, VMM, heap, threading, synchronization, keyboard, and timer messages, then rebuilds with a test-only invalid instruction path to verify CPU exception reporting and the panic halt path. The page-fault target separately rebuilds with a test-only unmapped memory access to verify page-fault reporting and the panic halt path.
 
 ## Documentation
 
