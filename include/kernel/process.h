@@ -33,6 +33,7 @@ typedef struct process {
 
     uintptr_t user_stack_base;
     uintptr_t user_stack_top;
+    uintptr_t user_initial_esp;
 } process_t;
 
 void process_init_system(void);
@@ -63,6 +64,12 @@ void process_set_user_stack(
     process_t *process,
     uintptr_t stack_base,
     uintptr_t stack_top
+);
+
+int process_setup_arguments(
+    process_t *process,
+    int argc,
+    const char **argv
 );
 
 void process_start_user(process_t *process);

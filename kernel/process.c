@@ -16,6 +16,8 @@
 #include "kernel/usermode.h"
 
 #define PROCESS_MAGIC 0x50524F43u
+#define PROCESS_MAX_ARGC 16
+#define PROCESS_MAX_ARG_STRING 128
 
 static uint32_t next_pid;
 static volatile uint32_t last_exit_code;
@@ -68,6 +70,7 @@ process_t *process_create_empty(const char *name) {
     process->user_entry = 0;
     process->user_stack_base = 0;
     process->user_stack_top = 0;
+    process->user_initial_esp = 0;
 
     return process;
 }
@@ -78,6 +81,10 @@ static uintptr_t page_align_down(uintptr_t value) {
 
 static uintptr_t page_align_up(uintptr_t value) {
     return (value + PMM_PAGE_SIZE - 1u) & ~(uintptr_t)(PMM_PAGE_SIZE - 1u);
+}
+
+static uintptr_t align_down_4(uintptr_t value) {
+    return value & ~(uintptr_t)0x3u;
 }
 
 static int map_user_page(process_t *process, uintptr_t virtual_addr) {
@@ -228,6 +235,123 @@ void process_set_user_stack(
     validate_process(process);
     process->user_stack_base = stack_base;
     process->user_stack_top = stack_top;
+    process->user_initial_esp = stack_top;
+}
+
+typedef struct argv_copy_context {
+    uintptr_t dest;
+    const void *src;
+    uint32_t size;
+} argv_copy_context_t;
+
+static void argv_copy_operation(void *context) {
+    argv_copy_context_t *copy = (argv_copy_context_t *)context;
+    memcpy((void *)copy->dest, copy->src, copy->size);
+}
+
+static int process_copy_stack_bytes(
+    process_t *process,
+    uintptr_t dest,
+    const void *src,
+    uint32_t size
+) {
+    if (size == 0) {
+        return 0;
+    }
+
+    argv_copy_context_t context;
+    context.dest = dest;
+    context.src = src;
+    context.size = size;
+
+    process_with_address_space(process, argv_copy_operation, &context);
+    return 0;
+}
+
+int process_setup_arguments(
+    process_t *process,
+    int argc,
+    const char **argv
+) {
+    validate_live_process(process);
+
+    if (argc < 0 || argc > PROCESS_MAX_ARGC) {
+        return -1;
+    }
+
+    if (argc > 0 && argv == 0) {
+        return -1;
+    }
+
+    if (process->user_stack_base == 0 || process->user_stack_top == 0) {
+        return -1;
+    }
+
+    uintptr_t sp = process->user_stack_top;
+    uintptr_t arg_ptrs[PROCESS_MAX_ARGC];
+
+    for (int i = argc - 1; i >= 0; --i) {
+        const char *arg = argv[i];
+
+        if (arg == 0) {
+            return -1;
+        }
+
+        uint32_t len = 0;
+        while (arg[len] != '\0') {
+            len++;
+            if (len >= PROCESS_MAX_ARG_STRING) {
+                return -1;
+            }
+        }
+
+        uint32_t bytes = len + 1u;
+        if (sp < process->user_stack_base + bytes) {
+            return -1;
+        }
+
+        sp -= bytes;
+        if (process_copy_stack_bytes(process, sp, arg, bytes) != 0) {
+            return -1;
+        }
+
+        arg_ptrs[i] = sp;
+    }
+
+    sp = align_down_4(sp);
+
+    uint32_t pointer_words = 1u + (uint32_t)argc + 1u + 1u;
+    uint32_t table_bytes = pointer_words * sizeof(uint32_t);
+
+    if (sp < process->user_stack_base + table_bytes) {
+        return -1;
+    }
+
+    sp -= table_bytes;
+
+    uint32_t stack_table[1u + PROCESS_MAX_ARGC + 1u + 1u];
+    uint32_t index = 0;
+
+    stack_table[index++] = (uint32_t)argc;
+    for (int i = 0; i < argc; ++i) {
+        stack_table[index++] = (uint32_t)arg_ptrs[i];
+    }
+    stack_table[index++] = 0;
+    stack_table[index++] = 0;
+
+    if (process_copy_stack_bytes(process, sp, stack_table, table_bytes) != 0) {
+        return -1;
+    }
+
+    process->user_initial_esp = sp;
+
+    console_write("Process: initial stack argc=");
+    console_write_u32_dec((uint32_t)argc);
+    console_write(" esp=");
+    console_write_hex32((uint32_t)sp);
+    console_putc('\n');
+
+    return 0;
 }
 
 void process_start_user(process_t *process) {
@@ -235,8 +359,9 @@ void process_start_user(process_t *process) {
 
     if (process->user_entry == 0 ||
         process->user_stack_base == 0 ||
-        process->user_stack_top == 0) {
-        kernel_panic("process_start_user missing entry or stack");
+        process->user_stack_top == 0 ||
+        process->user_initial_esp == 0) {
+        kernel_panic("process_start_user missing entry or initial stack");
     }
 
     thread_t *thread = thread_create_suspended(
@@ -365,7 +490,7 @@ extern const uint8_t user_demo_elf_start[];
 extern const uint8_t user_demo_elf_end[];
 
 void process_test_once(void) {
-    console_writeln("Process test: starting compiled ELF32 user program test");
+    console_writeln("Process test: starting compiled ELF32 argv user program test");
 
     last_exit_seen = 0;
     last_exit_code = 0xFFFFFFFFu;
@@ -378,11 +503,23 @@ void process_test_once(void) {
         kernel_panic("compiled user ELF image is empty");
     }
 
-    process_t *process = elf_create_process(
+    process_t *process = elf_create_process_suspended(
         "compiled-demo",
         elf_image,
         elf_size
     );
+
+    static const char *argv[] = {
+        "demo",
+        "alpha",
+        "beta"
+    };
+
+    if (process_setup_arguments(process, 3, argv) != 0) {
+        kernel_panic("process argv setup failed");
+    }
+
+    process_start_user(process);
 
     thread_sleep_ticks(2);
 
@@ -396,7 +533,7 @@ void process_test_once(void) {
     uint32_t exit_code = process_wait(process);
 
     if (exit_code != 9) {
-        kernel_panic("compiled ELF process test received wrong exit code");
+        kernel_panic("compiled ELF argv process test received wrong exit code");
     }
 
     process_destroy(process);
@@ -405,5 +542,5 @@ void process_test_once(void) {
         kernel_panic("compiled ELF process test missing exit diagnostics");
     }
 
-    console_writeln("Process test: compiled ELF32 user program cleanup sanity check passed");
+    console_writeln("Process test: compiled ELF32 argv cleanup sanity check passed");
 }

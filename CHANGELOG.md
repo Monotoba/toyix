@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_24] - 2026-06-26
+
+- Add `process->user_initial_esp` and a `process_setup_arguments()` helper for building user stacks in the target address space.
+- Add `elf_create_process_suspended()` so callers can install argv data before starting a user process.
+- Update user-mode entry and `crt0` so compiled user programs start as `main(int argc, char **argv)`.
+- Update the embedded demo program and smoke expectations to verify `argc=3`, `argv[0]=demo`, `argv[1]=alpha`, and `argv[2]=beta`.
+- Update Chapter 24, the README, the series index, and the roadmap for the current process startup ABI.
+
 ## [Chapter_23] - 2026-06-26
 
 - Add a `user/` build pipeline with syscall headers, startup assembly, a C demo program, and a user linker script.

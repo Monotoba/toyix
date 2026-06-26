@@ -274,7 +274,7 @@ int elf_load_process(
     return ELF_LOADER_OK;
 }
 
-process_t *elf_create_process(
+process_t *elf_create_process_suspended(
     const char *name,
     const uint8_t *image,
     uint32_t image_size
@@ -287,6 +287,24 @@ process_t *elf_create_process(
         console_write_u32_dec((uint32_t)(-rc));
         console_putc('\n');
         kernel_panic("ELF32 process load failed");
+    }
+
+    return process;
+}
+
+process_t *elf_create_process(
+    const char *name,
+    const uint8_t *image,
+    uint32_t image_size
+) {
+    process_t *process = elf_create_process_suspended(name, image, image_size);
+
+    static const char *default_argv[] = {
+        "program"
+    };
+
+    if (process_setup_arguments(process, 1, default_argv) != 0) {
+        kernel_panic("ELF32 default argument setup failed");
     }
 
     process_start_user(process);

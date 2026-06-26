@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
 [![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20memory%20%2B%20threads%20%2B%20sync%20%2B%20exceptions-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, a first ring-3 user-mode syscall path, a minimal process abstraction with checked user-memory copying, fd-style read/write syscalls, per-process address spaces, scheduler CR3 switching, process teardown with user-page and page-table cleanup, an initial ELF32 user-program loader, and a tiny userland build pipeline that compiles and embeds a real user C program into the kernel image, and verifies boot behavior through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, a first ring-3 user-mode syscall path, a minimal process abstraction with checked user-memory copying, fd-style read/write syscalls, per-process address spaces, scheduler CR3 switching, process teardown with user-page and page-table cleanup, an initial ELF32 user-program loader, a tiny userland build pipeline that compiles and embeds a real user C program into the kernel image, and an initial `argc`/`argv` user-stack handoff for compiled user programs, with boot behavior verified through automated QEMU smoke tests.
 
 Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us).
 
@@ -54,7 +54,8 @@ Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us
 - Process wait/destroy helpers with user-page tracking, address-space teardown, and page-directory cleanup
 - Initial ELF32 user-program loading with header validation, `PT_LOAD` segment mapping, BSS zeroing, and explicit entry-point setup
 - Tiny userland build pipeline with syscall headers, startup assembly, a user linker script, a compiled demo ELF, and `objcopy` embedding into the kernel
-- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, address-space setup, heap setup, cooperative threading, preemption, blocking sleep, synchronization, blocking keyboard input, terminal readline, monitor commands, keyboard modifiers, compiled user ELF loading, deliberate invalid-opcode exception handling, and deliberate page-fault handling
+- Initial user-stack construction with `argc`, `argv`, `argv[argc] = NULL`, and `crt0` argument handoff into `main(int argc, char **argv)`
+- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, address-space setup, heap setup, cooperative threading, preemption, blocking sleep, synchronization, blocking keyboard input, terminal readline, monitor commands, keyboard modifiers, compiled user ELF loading, user-stack argument handoff, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
 ## Repository Layout
@@ -154,6 +155,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 21](articles/chapter_21.md)
 - [Chapter 22](articles/chapter_22.md)
 - [Chapter 23](articles/chapter_23.md)
+- [Chapter 24](articles/chapter_24.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

@@ -14,8 +14,40 @@ static void write_str(const char *text) {
     toyix_write(FD_STDOUT, text, str_len(text));
 }
 
-int main(void) {
+static void write_uint(toyix_u32 value) {
+    char buffer[11];
+    toyix_u32 index = 0;
+
+    if (value == 0) {
+        write_str("0");
+        return;
+    }
+
+    while (value > 0 && index < sizeof(buffer)) {
+        buffer[index++] = (char)('0' + (value % 10u));
+        value /= 10u;
+    }
+
+    while (index > 0) {
+        char ch = buffer[--index];
+        toyix_write(FD_STDOUT, &ch, 1);
+    }
+}
+
+int main(int argc, char **argv) {
     char buffer[32];
+
+    write_str("argc=");
+    write_uint((toyix_u32)argc);
+    write_str("\n");
+
+    for (int i = 0; i < argc; ++i) {
+        write_str("argv[");
+        write_uint((toyix_u32)i);
+        write_str("]=");
+        write_str(argv[i]);
+        write_str("\n");
+    }
 
     write_str("user> ");
 

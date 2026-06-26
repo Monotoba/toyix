@@ -20,6 +20,12 @@ int elf_load_process(
     uint32_t image_size
 );
 
+process_t *elf_create_process_suspended(
+    const char *name,
+    const uint8_t *image,
+    uint32_t image_size
+);
+
 process_t *elf_create_process(
     const char *name,
     const uint8_t *image,

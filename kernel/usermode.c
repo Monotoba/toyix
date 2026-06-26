@@ -25,15 +25,15 @@ void usermode_enter_current_process(void) {
         kernel_panic("usermode entry without process");
     }
 
-    if (process->user_entry == 0 || process->user_stack_top == 0) {
-        kernel_panic("usermode entry missing entry point or stack");
+    if (process->user_entry == 0 || process->user_initial_esp == 0) {
+        kernel_panic("usermode entry missing entry point or initial stack");
     }
 
     tss_set_kernel_stack(current_thread_kernel_stack_top());
 
     x86_enter_user_mode(
         (uint32_t)process->user_entry,
-        (uint32_t)process->user_stack_top
+        (uint32_t)process->user_initial_esp
     );
 
     kernel_panic("x86_enter_user_mode returned unexpectedly");
