@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_22] - 2026-06-26
+
+- Add freestanding ELF32 header definitions and an initial ELF32 process loader.
+- Replace the Chapter 21 TOYEXE smoke demo with an ELF32 `PT_LOAD` demo image.
+- Remove `kernel/toyexe.o` from the active build while keeping the old TOYEXE files as reference.
+- Update process smoke expectations for ELF32 load, entry, exit, and cleanup output.
+- Update Chapter 22, the README, the series index, the roadmap, and smoke suite expectations.
+
 ## [Chapter_21] - 2026-06-26
 
 - Add owned-user-page tracking to process address spaces.

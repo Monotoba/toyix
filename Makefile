@@ -46,6 +46,7 @@ OBJS := \
     build/arch/x86/user_enter.o \
     build/arch/x86/vmm.o \
     build/kernel/address_space.o \
+    build/kernel/elf_loader.o \
     build/kernel/kmain.o \
     build/kernel/idle.o \
     build/kernel/console.o \
@@ -58,7 +59,6 @@ OBJS := \
     build/kernel/syscall.o \
     build/kernel/terminal.o \
     build/kernel/thread.o \
-    build/kernel/toyexe.o \
     build/kernel/usercopy.o \
     build/kernel/usermode.o \
     build/kernel/vmem.o \
@@ -138,22 +138,22 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "Process test: starting TOYEXE lifecycle cleanup test" build/test.log
+	grep -q "Process test: starting ELF32 user program test" build/test.log
 	grep -q "Address space: created process page directory" build/test.log
-	grep -q "TOYEXE: loaded image bytes=256 bss=64" build/test.log
-	grep -q "Process: created pid=1 name=toyexe-demo" build/test.log
-	grep -q "user>" build/test.log
+	grep -q "ELF32: loaded PT_LOAD vaddr=0x40100000 filesz=256 memsz=320" build/test.log
+	grep -q "ELF32: entry=0x40100000" build/test.log
+	grep -q "Process: created pid=1 name=elf-demo" build/test.log
 	grep -q "echo: toyix" build/test.log
-	grep -q "Syscall: process toyexe-demo pid=1 exited code 9" build/test.log
+	grep -q "Syscall: process elf-demo pid=1 exited code 9" build/test.log
 	grep -q "Address space: destroyed process page directory" build/test.log
-	grep -q "Process: destroyed pid=1 name=toyexe-demo" build/test.log
-	grep -q "Process test: TOYEXE lifecycle cleanup sanity check passed" build/test.log
+	grep -q "Process: destroyed pid=1 name=elf-demo" build/test.log
+	grep -q "Process test: ELF32 load/read/write/sleep/exit cleanup sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, TOYEXE, and process cleanup smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, address-space, and ELF32 loader smoke test passed."
 
 test-exception:
 	$(MAKE) clean
