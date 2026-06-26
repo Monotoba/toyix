@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #define X86_SCHED_INTERRUPT_VECTOR 48u
+#define X86_SYSCALL_INTERRUPT_VECTOR 0x80u
 
 typedef struct interrupt_frame {
     uint32_t ds;

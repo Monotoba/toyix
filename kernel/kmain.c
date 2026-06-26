@@ -17,6 +17,7 @@
 #include "kernel/sync.h"
 #include "kernel/terminal.h"
 #include "kernel/thread.h"
+#include "kernel/usermode.h"
 #include "kernel/vmem.h"
 
 extern const console_driver_t serial_console_driver;
@@ -102,6 +103,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     monitor_init();
     monitor_test_once();
+    usermode_test_once();
     monitor_start();
 
     pit_wait_ticks(3);

@@ -89,6 +89,14 @@ static uint32_t count_list(const thread_t *head) {
 	return count;
 }
 
+static uint32_t thread_kernel_stack_top(thread_t *thread) {
+	if (thread == 0 || thread->stack_base == 0) {
+		return 0;
+	}
+
+	return (uint32_t)((uintptr_t)thread->stack_base + thread->stack_size);
+}
+
 static void queue_push(
 	thread_t **head,
 	thread_t **tail,
@@ -582,6 +590,12 @@ uintptr_t thread_schedule_from_interrupt(interrupt_frame_t *frame) {
 
 	next_thread->state = THREAD_RUNNING;
 	current_thread = next_thread;
+
+	uint32_t next_stack_top = thread_kernel_stack_top(next_thread);
+
+	if (next_stack_top != 0) {
+		tss_set_kernel_stack(next_stack_top);
+	}
 
 	current_slice_ticks = 0;
 	reschedule_requested = 0;

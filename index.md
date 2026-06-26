@@ -40,3 +40,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 13: Mutexes, Semaphores, and a Console Lock](articles/chapter_13.md)
 - [Chapter 14: Terminal Line Discipline and a Kernel Monitor](articles/chapter_14.md)
 - [Chapter 15: Command Tables, Argument Parsing, and Shift-Aware Keyboard Input](articles/chapter_15.md)
+- [Chapter 16: Entering User Mode and Returning Through Syscalls](articles/chapter_16.md)

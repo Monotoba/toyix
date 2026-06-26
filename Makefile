@@ -42,6 +42,8 @@ OBJS := \
     build/arch/x86/pic.o \
     build/arch/x86/pit.o \
     build/arch/x86/sched_interrupt.o \
+    build/arch/x86/syscall.o \
+    build/arch/x86/user_enter.o \
     build/arch/x86/vmm.o \
     build/kernel/kmain.o \
     build/kernel/idle.o \
@@ -51,8 +53,10 @@ OBJS := \
     build/kernel/panic.o \
     build/kernel/pmm.o \
     build/kernel/sync.o \
+    build/kernel/syscall.o \
     build/kernel/terminal.o \
     build/kernel/thread.o \
+    build/kernel/usermode.o \
     build/kernel/vmem.o \
     build/kernel/wait_queue.o \
     build/kernel/lib/mem.o \
@@ -107,6 +111,7 @@ test: iso
 		2>/dev/null || true
 	grep -q "Toyix kernel alive" build/test.log
 	grep -q "Boot protocol: Multiboot OK" build/test.log
+	grep -q "GDT: installed kernel/user segments and TSS" build/test.log
 	grep -q "PMM: parsing Multiboot memory map" build/test.log
 	grep -q "PMM test: allocation/free sanity check passed" build/test.log
 	grep -q "Paging: enabled with identity map of first 16 MiB" build/test.log
@@ -127,12 +132,17 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
+	grep -q "User mode test: preparing ring 3 program" build/test.log
+	grep -q "User mode test: entering ring 3" build/test.log
+	grep -q "U3" build/test.log
+	grep -q "Syscall: user thread requested exit code 0" build/test.log
+	grep -q "User mode test: ring 3 syscall/exit sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, terminal, monitor, and keyboard modifier smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, and user-mode syscall smoke test passed."
 
 test-exception:
 	$(MAKE) clean

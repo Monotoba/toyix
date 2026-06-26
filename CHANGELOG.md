@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_16] - 2026-06-26
+
+- Add user and TSS GDT entries plus TSS kernel-stack refresh during scheduling.
+- Add an `int 0x80` syscall gate and syscall entry stub for ring-3 callers.
+- Add a user-mode test program that prints `U3` and exits through syscalls.
+- Add user-mode page setup, syscall handling, and boot smoke checks.
+- Update Chapter 16, the README, the series index, and smoke suite expectations.
+
 ## [Chapter_15] - 2026-06-25
 
 - Refactor the kernel monitor around a command table with usage strings and per-command help.

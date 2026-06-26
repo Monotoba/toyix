@@ -79,6 +79,7 @@ extern void irq13(void);
 extern void irq14(void);
 extern void irq15(void);
 extern void sched_interrupt_stub(void);
+extern void syscall_stub(void);
 
 
 
@@ -161,7 +162,14 @@ void idt_init(void) {
         0x8Eu
     );
 
+    idt_set_gate(
+        X86_SYSCALL_INTERRUPT_VECTOR,
+        (uint32_t)syscall_stub,
+        X86_KERNEL_CODE_SELECTOR,
+        0xEEu
+    );
+
     idt_load((uint32_t) & idt_ptr);
 
-    console_writeln("IDT: installed exceptions, IRQs, and scheduler interrupt");
+    console_writeln("IDT: installed exceptions, IRQs, scheduler interrupt, and syscall gate");
 }
