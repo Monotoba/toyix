@@ -44,3 +44,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 17: Minimal Processes, User Memory Copying, and More Robust Syscalls](articles/chapter_17.md)
 - [Chapter 18: File-Descriptor Syscalls and a Tiny User-Mode Console Program](articles/chapter_18.md)
 - [Chapter 19: Per-Process Address Spaces and CR3 Switching](articles/chapter_19.md)
+- [Chapter 20: A Tiny Executable Format and User Program Loader](articles/chapter_20.md)

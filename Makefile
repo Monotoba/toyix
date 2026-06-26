@@ -58,6 +58,7 @@ OBJS := \
     build/kernel/syscall.o \
     build/kernel/terminal.o \
     build/kernel/thread.o \
+    build/kernel/toyexe.o \
     build/kernel/usercopy.o \
     build/kernel/usermode.o \
     build/kernel/vmem.o \
@@ -137,19 +138,20 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "Process test: starting isolated address-space syscall test" build/test.log
+	grep -q "Process test: starting TOYEXE user program test" build/test.log
 	grep -q "Address space: created process page directory" build/test.log
-	grep -q "Process: created pid=1 name=stdio-demo" build/test.log
+	grep -q "TOYEXE: loaded image bytes=256 bss=64" build/test.log
+	grep -q "Process: created pid=1 name=toyexe-demo" build/test.log
 	grep -q "user>" build/test.log
 	grep -q "echo: toyix" build/test.log
-	grep -q "Syscall: process stdio-demo pid=1 exited code 9" build/test.log
-	grep -q "Process test: isolated address-space syscall sanity check passed" build/test.log
+	grep -q "Syscall: process toyexe-demo pid=1 exited code 9" build/test.log
+	grep -q "Process test: TOYEXE load/read/write/sleep/exit sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, and isolated address-space syscall smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, address-space, and TOYEXE loader smoke test passed."
 
 test-exception:
 	$(MAKE) clean

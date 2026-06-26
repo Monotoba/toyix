@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_20] - 2026-06-26
+
+- Add a tiny TOYEXE executable format and loader for user programs.
+- Split process creation into empty-process, mapping, copy, stack, and start helpers.
+- Make user-mode entry use the process loader-provided entry point.
+- Replace the Chapter 19 byte-array user demo with a TOYEXE-backed user program test.
+- Update Chapter 20, the README, the series index, and smoke suite expectations.
+
 ## [Chapter_19] - 2026-06-26
 
 - Add per-process address spaces with private user mappings and shared kernel mappings.

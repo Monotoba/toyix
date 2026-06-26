@@ -1,10 +1,10 @@
 # Toyix Roadmap
 
-This roadmap tracks the direction of the Toyix series after Chapter 19. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
+This roadmap tracks the direction of the Toyix series after Chapter 20. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
 
-Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, and per-process address spaces with `CR3` switching.
+Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, and a tiny TOYEXE loader for user programs.
 
-The next goal is to turn the current in-kernel demo programs into loadable user programs, then build enough process, file, and terminal infrastructure to support a small shell.
+The next goal is to add process teardown and user-page reclamation, then build enough process, file, and terminal infrastructure to support a small shell.
 
 ## Completed Chapters
 
@@ -29,23 +29,23 @@ The next goal is to turn the current in-kernel demo programs into loadable user 
 | 17 | Minimal processes, user memory copying, and more robust syscalls |
 | 18 | File-descriptor syscalls and a tiny user-mode console program |
 | 19 | Per-process address spaces and `CR3` switching |
+| 20 | A tiny executable format and user program loader |
 
 ## Near-Term Plan
 
-These chapters are the most likely next path because they build directly on Chapter 19.
+These chapters are the most likely next path because they build directly on Chapter 20.
 
 | Chapter | Planned Topic |
 | ------: | ------------- |
-| 20 | Tiny executable image format |
-| 21 | Loading a toy executable into a process address space |
-| 22 | Program image abstraction and embedded program registry |
-| 23 | User program entry metadata and separate code/data/BSS regions |
-| 24 | User stack setup improvements and argument passing groundwork |
-| 25 | Process table lookup, process listing, and `ps`-style monitor output |
-| 26 | Parent/child process relationships and exit status storage |
-| 27 | `wait`/`waitpid`-style syscall support |
-| 28 | Safer user fault handling that kills a process instead of panicking |
-| 29 | Process cleanup for user pages, page tables, and process objects |
+| 21 | Process teardown and user page cleanup |
+| 22 | Waiting for process exit and collecting status |
+| 23 | Program image abstraction and embedded program registry |
+| 24 | User program entry metadata and separate code/data/BSS regions |
+| 25 | User stack setup improvements and argument passing groundwork |
+| 26 | Process table lookup, process listing, and `ps`-style monitor output |
+| 27 | Parent/child process relationships and exit status storage |
+| 28 | `wait`/`waitpid`-style syscall support |
+| 29 | Safer user fault handling that kills a process instead of panicking |
 | 30 | First reusable userland support library |
 
 ## Medium-Term Plan
@@ -84,9 +84,9 @@ These areas are intentionally broader. They may split into many chapters as the 
 
 ## Current Direction
 
-The most important architectural gap after Chapter 19 is executable loading.
+The most important architectural gap after Chapter 20 is process lifecycle cleanup.
 
-The current user process test still builds a small byte array inside the kernel. The next stage should introduce a tiny executable format before full ELF. That keeps the loader understandable while establishing the right abstractions:
+The current user process test still builds a tiny TOYEXE image inside the kernel. The next stage should reclaim process resources cleanly before moving on to a fuller executable story. That keeps the loader understandable while establishing the right abstractions:
 
 ```text
 program image

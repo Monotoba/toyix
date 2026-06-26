@@ -12,19 +12,20 @@
 #include "kernel/string.h"
 #include "kernel/syscall.h"
 #include "kernel/thread.h"
+#include "kernel/toyexe.h"
 #include "kernel/usermode.h"
 
 #define PROCESS_MAGIC 0x50524F43u
 
-#define USER_PROCESS_CODE_VA   0x40100000u
-#define USER_PROCESS_STACK_VA  0x40101000u
-#define USER_PROCESS_STACK_TOP 0x40102000u
-#define USER_PROCESS_PROMPT_VA 0x401000A0u
-#define USER_PROCESS_PREFIX_VA 0x401000A8u
-#define USER_PROCESS_NEWLINE_VA 0x401000B0u
-#define USER_PROCESS_INPUT_VA  0x401000C0u
+#define DEMO_IMAGE_SIZE 256u
+#define DEMO_BSS_SIZE 64u
 
-#define USER_PROCESS_INPUT_MAX 32u
+#define DEMO_PROMPT_VA (TOYEXE_USER_BASE + 0xA0u)
+#define DEMO_PREFIX_VA (TOYEXE_USER_BASE + 0xA8u)
+#define DEMO_NEWLINE_VA (TOYEXE_USER_BASE + 0xB0u)
+#define DEMO_INPUT_VA (TOYEXE_USER_BASE + DEMO_IMAGE_SIZE)
+
+#define DEMO_INPUT_MAX 32u
 
 static uint32_t next_pid;
 static volatile uint32_t last_exit_code;
@@ -40,78 +41,211 @@ void process_init_system(void) {
     console_writeln("Process: process table initialized");
 }
 
-static void map_user_page(address_space_t *space, uintptr_t virtual_addr) {
-    uintptr_t physical = pmm_alloc_page();
-
-    if (physical == PMM_INVALID_PAGE) {
-        kernel_panic("process could not allocate user page");
+static void validate_process(process_t *process) {
+    if (process == 0) {
+        kernel_panic("process: null process");
     }
 
-    int rc = address_space_map_page(
-        space,
-        virtual_addr,
-        physical,
-        ADDRESS_SPACE_FLAG_WRITABLE | ADDRESS_SPACE_FLAG_USER
-    );
-
-    if (rc != 0) {
-        kernel_panic("process could not map user page");
+    if (process->magic != PROCESS_MAGIC) {
+        kernel_panic("process: magic mismatch");
     }
 }
 
-process_t *process_create_user(
-    const char *name,
-    const uint8_t *program,
-    uint32_t program_size
-) {
-    if (program == 0 || program_size == 0) {
-        kernel_panic("process_create_user received empty program");
-    }
-
-    if (program_size > PMM_PAGE_SIZE) {
-        kernel_panic("process_create_user program too large for one page");
-    }
-
+process_t *process_create_empty(const char *name) {
     process_t *process = (process_t *)kcalloc(1, sizeof(process_t));
 
     if (process == 0) {
-        kernel_panic("process_create_user could not allocate process object");
+        kernel_panic("process_create_empty could not allocate process object");
     }
 
     process->magic = PROCESS_MAGIC;
     process->pid = next_pid++;
     process->name = name != 0 ? name : "unnamed";
     process->state = PROCESS_NEW;
-
+    process->address_space = address_space_create();
+    process->main_thread = 0;
     process->exit_code = 0xFFFFFFFFu;
     process->exited = 0;
+    process->user_code_base = 0;
+    process->user_entry = 0;
+    process->user_stack_base = 0;
+    process->user_stack_top = 0;
 
-    process->user_code_base = USER_PROCESS_CODE_VA;
-    process->user_stack_base = USER_PROCESS_STACK_VA;
-    process->user_stack_top = USER_PROCESS_STACK_TOP;
+    return process;
+}
+
+static uintptr_t page_align_down(uintptr_t value) {
+    return value & ~(uintptr_t)(PMM_PAGE_SIZE - 1u);
+}
+
+static uintptr_t page_align_up(uintptr_t value) {
+    return (value + PMM_PAGE_SIZE - 1u) & ~(uintptr_t)(PMM_PAGE_SIZE - 1u);
+}
+
+static int map_user_page(process_t *process, uintptr_t virtual_addr) {
+    validate_process(process);
+
+    uintptr_t physical = pmm_alloc_page();
+
+    if (physical == PMM_INVALID_PAGE) {
+        return -1;
+    }
+
+    int rc = address_space_map_page(
+        process->address_space,
+        virtual_addr,
+        physical,
+        ADDRESS_SPACE_FLAG_WRITABLE | ADDRESS_SPACE_FLAG_USER
+    );
+
+    if (rc != 0) {
+        pmm_free_page(physical);
+        return -1;
+    }
+
+    return 0;
+}
+
+int process_map_user_region(
+    process_t *process,
+    uintptr_t virtual_addr,
+    uint32_t size_bytes
+) {
+    validate_process(process);
+
+    if (size_bytes == 0) {
+        return 0;
+    }
+
+    uintptr_t start = page_align_down(virtual_addr);
+    uintptr_t end_raw = virtual_addr + (uintptr_t)size_bytes;
+
+    if (end_raw < virtual_addr) {
+        return -1;
+    }
+
+    uintptr_t end = page_align_up(end_raw);
+
+    for (uintptr_t addr = start; addr < end; addr += PMM_PAGE_SIZE) {
+        if (map_user_page(process, addr) != 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static void process_with_address_space(
+    process_t *process,
+    void (*operation)(void *context),
+    void *context
+) {
+    validate_process(process);
+
+    irq_flags_t flags = irq_save();
+    address_space_t *old_space = address_space_current();
+
+    address_space_switch(process->address_space);
+    operation(context);
+    address_space_switch(old_space);
+
+    irq_restore(flags);
+}
+
+typedef struct copy_context {
+    uintptr_t user_dest;
+    const void *kernel_src;
+    uint32_t size;
+} copy_context_t;
+
+static void copy_operation(void *context) {
+    copy_context_t *copy = (copy_context_t *)context;
+    memcpy((void *)copy->user_dest, copy->kernel_src, copy->size);
+}
+
+int process_copy_to_user_init(
+    process_t *process,
+    uintptr_t user_dest,
+    const void *kernel_src,
+    uint32_t size
+) {
+    validate_process(process);
+
+    if (size == 0) {
+        return 0;
+    }
+
+    if (kernel_src == 0) {
+        return -1;
+    }
+
+    copy_context_t context;
+    context.user_dest = user_dest;
+    context.kernel_src = kernel_src;
+    context.size = size;
+
+    process_with_address_space(process, copy_operation, &context);
+    return 0;
+}
+
+typedef struct zero_context {
+    uintptr_t user_dest;
+    uint32_t size;
+} zero_context_t;
+
+static void zero_operation(void *context) {
+    zero_context_t *zero = (zero_context_t *)context;
+    memset((void *)zero->user_dest, 0, zero->size);
+}
+
+int process_zero_user_init(
+    process_t *process,
+    uintptr_t user_dest,
+    uint32_t size
+) {
+    validate_process(process);
+
+    if (size == 0) {
+        return 0;
+    }
+
+    zero_context_t context;
+    context.user_dest = user_dest;
+    context.size = size;
+
+    process_with_address_space(process, zero_operation, &context);
+    return 0;
+}
+
+void process_set_user_entry(process_t *process, uintptr_t entry) {
+    validate_process(process);
+    process->user_entry = entry;
+}
+
+void process_set_user_stack(
+    process_t *process,
+    uintptr_t stack_base,
+    uintptr_t stack_top
+) {
+    validate_process(process);
+    process->user_stack_base = stack_base;
+    process->user_stack_top = stack_top;
+}
+
+void process_start_user(process_t *process) {
+    validate_process(process);
+
+    if (process->user_entry == 0 ||
+        process->user_stack_base == 0 ||
+        process->user_stack_top == 0) {
+        kernel_panic("process_start_user missing entry or stack");
+    }
 
     thread_t *thread = thread_create_suspended(
         process->name,
         user_process_thread_entry,
         process
     );
-
-    process->address_space = address_space_create();
-
-    map_user_page(process->address_space, process->user_code_base);
-    map_user_page(process->address_space, process->user_stack_base);
-
-    irq_flags_t flags = irq_save();
-    address_space_t *old_space = address_space_current();
-
-    address_space_switch(process->address_space);
-
-    memset((void *)process->user_code_base, 0x90, PMM_PAGE_SIZE);
-    memcpy((void *)process->user_code_base, program, program_size);
-    memset((void *)process->user_stack_base, 0, PMM_PAGE_SIZE);
-
-    address_space_switch(old_space);
-    irq_restore(flags);
 
     thread_set_process(thread, process);
 
@@ -124,8 +258,6 @@ process_t *process_create_user(
     console_write_u32_dec(process->pid);
     console_write(" name=");
     console_writeln(process->name);
-
-    return process;
 }
 
 process_t *process_current(void) {
@@ -241,21 +373,21 @@ static void emit_int80(uint8_t *program, uint32_t *offset) {
     emit_u8(program, offset, 0x80u);
 }
 
-static void build_stdio_demo_program(uint8_t *program, uint32_t program_size) {
+static void build_stdio_demo_payload(uint8_t *program, uint32_t program_size) {
     memset(program, 0x90, program_size);
 
     uint32_t offset = 0;
 
     emit_mov_eax_imm32(program, &offset, SYS_WRITE);
     emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
-    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_PROMPT_VA);
+    emit_mov_ecx_imm32(program, &offset, DEMO_PROMPT_VA);
     emit_mov_edx_imm32(program, &offset, 6);
     emit_int80(program, &offset);
 
     emit_mov_eax_imm32(program, &offset, SYS_READ);
     emit_mov_ebx_imm32(program, &offset, FD_STDIN);
-    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_INPUT_VA);
-    emit_mov_edx_imm32(program, &offset, USER_PROCESS_INPUT_MAX);
+    emit_mov_ecx_imm32(program, &offset, DEMO_INPUT_VA);
+    emit_mov_edx_imm32(program, &offset, DEMO_INPUT_MAX);
     emit_int80(program, &offset);
 
     emit_u8(program, &offset, 0x89u);
@@ -263,13 +395,13 @@ static void build_stdio_demo_program(uint8_t *program, uint32_t program_size) {
 
     emit_mov_eax_imm32(program, &offset, SYS_WRITE);
     emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
-    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_PREFIX_VA);
+    emit_mov_ecx_imm32(program, &offset, DEMO_PREFIX_VA);
     emit_mov_edx_imm32(program, &offset, 6);
     emit_int80(program, &offset);
 
     emit_mov_eax_imm32(program, &offset, SYS_WRITE);
     emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
-    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_INPUT_VA);
+    emit_mov_ecx_imm32(program, &offset, DEMO_INPUT_VA);
 
     emit_u8(program, &offset, 0x89u);
     emit_u8(program, &offset, 0xF2u);
@@ -278,7 +410,7 @@ static void build_stdio_demo_program(uint8_t *program, uint32_t program_size) {
 
     emit_mov_eax_imm32(program, &offset, SYS_WRITE);
     emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
-    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_NEWLINE_VA);
+    emit_mov_ecx_imm32(program, &offset, DEMO_NEWLINE_VA);
     emit_mov_edx_imm32(program, &offset, 1);
     emit_int80(program, &offset);
 
@@ -302,38 +434,72 @@ static void build_stdio_demo_program(uint8_t *program, uint32_t program_size) {
     const char newline[] = "\n";
 
     memcpy(
-        &program[USER_PROCESS_PROMPT_VA - USER_PROCESS_CODE_VA],
+        &program[DEMO_PROMPT_VA - TOYEXE_USER_BASE],
         prompt,
         sizeof(prompt) - 1u
     );
 
     memcpy(
-        &program[USER_PROCESS_PREFIX_VA - USER_PROCESS_CODE_VA],
+        &program[DEMO_PREFIX_VA - TOYEXE_USER_BASE],
         prefix,
         sizeof(prefix) - 1u
     );
 
     memcpy(
-        &program[USER_PROCESS_NEWLINE_VA - USER_PROCESS_CODE_VA],
+        &program[DEMO_NEWLINE_VA - TOYEXE_USER_BASE],
         newline,
         1u
     );
 }
 
+static uint32_t build_stdio_demo_toyexe(
+    uint8_t *image,
+    uint32_t image_capacity
+) {
+    uint32_t total_size = sizeof(toyexe_header_t) + DEMO_IMAGE_SIZE;
+
+    if (image_capacity < total_size) {
+        kernel_panic("TOYEXE demo image buffer too small");
+    }
+
+    memset(image, 0, image_capacity);
+
+    toyexe_header_t *header = (toyexe_header_t *)image;
+
+    header->magic = TOYEXE_MAGIC;
+    header->version = TOYEXE_VERSION;
+    header->header_size = sizeof(toyexe_header_t);
+    header->entry_offset = 0;
+    header->image_offset = sizeof(toyexe_header_t);
+    header->image_size = DEMO_IMAGE_SIZE;
+    header->bss_size = DEMO_BSS_SIZE;
+    header->stack_size = TOYEXE_DEFAULT_STACK_SIZE;
+
+    build_stdio_demo_payload(
+        image + header->image_offset,
+        DEMO_IMAGE_SIZE
+    );
+
+    return total_size;
+}
+
 void process_test_once(void) {
-    console_writeln("Process test: starting isolated address-space syscall test");
+    console_writeln("Process test: starting TOYEXE user program test");
 
     last_exit_seen = 0;
     last_exit_code = 0xFFFFFFFFu;
 
-    static uint8_t program[256];
+    static uint8_t toyexe_image[sizeof(toyexe_header_t) + DEMO_IMAGE_SIZE];
 
-    build_stdio_demo_program(program, sizeof(program));
+    uint32_t toyexe_size = build_stdio_demo_toyexe(
+        toyexe_image,
+        sizeof(toyexe_image)
+    );
 
-    process_create_user(
-        "stdio-demo",
-        program,
-        sizeof(program)
+    toyexe_create_process(
+        "toyexe-demo",
+        toyexe_image,
+        toyexe_size
     );
 
     thread_sleep_ticks(2);
@@ -353,8 +519,8 @@ void process_test_once(void) {
     thread_reap_zombies();
 
     if (last_exit_code != 9) {
-        kernel_panic("process address-space syscall test received wrong exit code");
+        kernel_panic("TOYEXE process test received wrong exit code");
     }
 
-    console_writeln("Process test: isolated address-space syscall sanity check passed");
+    console_writeln("Process test: TOYEXE load/read/write/sleep/exit sanity check passed");
 }

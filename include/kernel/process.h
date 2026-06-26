@@ -28,17 +28,43 @@ typedef struct process {
     int exited;
 
     uintptr_t user_code_base;
+    uintptr_t user_entry;
+
     uintptr_t user_stack_base;
     uintptr_t user_stack_top;
 } process_t;
 
 void process_init_system(void);
 
-process_t *process_create_user(
-    const char *name,
-    const uint8_t *program,
-    uint32_t program_size
+process_t *process_create_empty(const char *name);
+
+int process_map_user_region(
+    process_t *process,
+    uintptr_t virtual_addr,
+    uint32_t size_bytes
 );
+
+int process_copy_to_user_init(
+    process_t *process,
+    uintptr_t user_dest,
+    const void *kernel_src,
+    uint32_t size
+);
+
+int process_zero_user_init(
+    process_t *process,
+    uintptr_t user_dest,
+    uint32_t size
+);
+
+void process_set_user_entry(process_t *process, uintptr_t entry);
+void process_set_user_stack(
+    process_t *process,
+    uintptr_t stack_base,
+    uintptr_t stack_top
+);
+
+void process_start_user(process_t *process);
 
 process_t *process_current(void);
 
