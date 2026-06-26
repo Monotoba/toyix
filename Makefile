@@ -190,13 +190,17 @@ test: iso
 	grep -q "Program registry: registered 1 embedded program(s)" build/test.log
 	grep -q "Embedded programs:" build/test.log
 	grep -q "demo - compiled user-mode demo program" build/test.log
-	grep -q "Program test: starting embedded program run test" build/test.log
+	grep -q "usage: runbg PROGRAM" build/test.log
+	grep -q "usage: wait PID" build/test.log
+	grep -q "Program test: starting background process table test" build/test.log
 	grep -q "Address space: created process page directory" build/test.log
 	grep -q "ELF32: loaded PT_LOAD vaddr=0x40100000" build/test.log
 	grep -q "ELF32: entry=0x40100000" build/test.log
 	grep -q "Process: initial stack argc=3" build/test.log
 	grep -q "Program: launching demo argc=3" build/test.log
 	grep -q "Process: created pid=1 name=demo" build/test.log
+	grep -q "Program test: background pid=1" build/test.log
+	grep -q "PID  STATE" build/test.log
 	grep -q "argc=3" build/test.log
 	grep -q "argv\\[0\\]=demo" build/test.log
 	grep -q "argv\\[1\\]=alpha" build/test.log
@@ -205,13 +209,13 @@ test: iso
 	grep -q "Syscall: process demo pid=1 exited code 9" build/test.log
 	grep -q "Address space: destroyed process page directory" build/test.log
 	grep -q "Process: destroyed pid=1 name=demo" build/test.log
-	grep -q "Program test: embedded ELF program run cleanup sanity check passed" build/test.log
+	grep -q "Program test: background process table cleanup sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, program registry, and run command smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, process table, and runbg/wait smoke test passed."
 
 test-exception:
 	$(MAKE) clean

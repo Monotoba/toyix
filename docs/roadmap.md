@@ -1,10 +1,10 @@
 # Toyix Roadmap
 
-This roadmap tracks the direction of the Toyix series after Chapter 25. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
+This roadmap tracks the direction of the Toyix series after Chapter 26. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
 
-Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, process teardown with user-page reclamation, an initial ELF32 loader for user programs, a compiled user C demo that is embedded into the kernel image, an initial `argc`/`argv` startup ABI for user processes, and an embedded program registry with monitor-driven foreground launches.
+Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, process teardown with user-page reclamation, an initial ELF32 loader for user programs, a compiled user C demo that is embedded into the kernel image, an initial `argc`/`argv` startup ABI for user processes, an embedded program registry with monitor-driven foreground launches, and a first process table with PID-aware monitor commands.
 
-The next goal is to move from simple foreground launches toward PID-aware process management, then build enough process, file, and terminal support to sustain a shell.
+The next goal is to make background execution practical by adding a second noninteractive user program and continuing to harden process management, then build enough process, file, and terminal support to sustain a shell.
 
 ## Completed Chapters
 
@@ -35,14 +35,14 @@ The next goal is to move from simple foreground launches toward PID-aware proces
 | 23 | Building a real user C program and embedding its ELF |
 | 24 | User `argc`, `argv`, and a real initial stack |
 | 25 | Embedded program registry and `run` monitor command |
+| 26 | Process table, `ps`, `runbg`, and `wait PID` |
 
 ## Near-Term Plan
 
-These chapters are the most likely next path because they build directly on Chapter 25.
+These chapters are the most likely next path because they build directly on Chapter 26.
 
 | Chapter | Planned Topic |
 | ------: | ------------- |
-| 26 | User program entry metadata and separate code/data/BSS regions |
 | 27 | Process table lookup, process listing, and `ps`-style monitor output |
 | 28 | Parent/child process relationships and exit status storage |
 | 29 | `wait`/`waitpid`-style syscall support |
@@ -84,16 +84,16 @@ These areas are intentionally broader. They may split into many chapters as the 
 
 ## Current Direction
 
-The most important architectural gap after Chapter 25 is the lack of PID-aware process management.
+The most important architectural gap after Chapter 26 is the lack of practical noninteractive background workloads and stronger process ownership rules.
 
-The kernel now loads a real compiled user ELF, passes a real initial stack with `argc` and `argv`, and can launch a named embedded program from the monitor. The next stage should preserve that path while making live processes visible and manageable:
+The kernel now loads a real compiled user ELF, passes a real initial stack with `argc` and `argv`, can launch named embedded programs from the monitor, and can track them by PID. The next stage should preserve that path while making background execution safer and more useful:
 
 ```text
-global process list
-PID-aware lookup
-monitor process commands
-background launch path
-wait and inspect by PID
+noninteractive background program
+safer runbg workflows
+parent/child relationships
+explicit collected-vs-running lifecycle
+better monitor process control
 ```
 
 Once that exists, Toyix can move from a single embedded demo toward richer user programs, process management, a shell, and filesystem-backed execution.

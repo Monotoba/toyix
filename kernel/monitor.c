@@ -2,6 +2,7 @@
 #include "kernel/console.h"
 #include "kernel/heap.h"
 #include "kernel/monitor.h"
+#include "kernel/process.h"
 #include "kernel/program.h"
 #include "kernel/pmm.h"
 #include "kernel/string.h"
@@ -25,10 +26,13 @@ static void monitor_thread_main(void *arg);
 static int cmd_help(int argc, char **argv);
 static int cmd_ticks(int argc, char **argv);
 static int cmd_threads(int argc, char **argv);
+static int cmd_ps(int argc, char **argv);
 static int cmd_mem(int argc, char **argv);
 static int cmd_heap(int argc, char **argv);
 static int cmd_programs(int argc, char **argv);
 static int cmd_run(int argc, char **argv);
+static int cmd_runbg(int argc, char **argv);
+static int cmd_wait(int argc, char **argv);
 static int cmd_sleep(int argc, char **argv);
 static int cmd_echo(int argc, char **argv);
 static int cmd_clear(int argc, char **argv);
@@ -53,6 +57,12 @@ static const monitor_command_t commands[] = {
         .handler = cmd_threads
     },
     {
+        .name = "ps",
+        .usage = "ps",
+        .help = "list processes",
+        .handler = cmd_ps
+    },
+    {
         .name = "mem",
         .usage = "mem",
         .help = "show physical memory manager stats",
@@ -75,6 +85,18 @@ static const monitor_command_t commands[] = {
         .usage = "run PROGRAM [ARGS...]",
         .help = "run an embedded user program in the foreground",
         .handler = cmd_run
+    },
+    {
+        .name = "runbg",
+        .usage = "runbg PROGRAM [ARGS...]",
+        .help = "run an embedded user program in the background",
+        .handler = cmd_runbg
+    },
+    {
+        .name = "wait",
+        .usage = "wait PID",
+        .help = "wait for a process and collect its exit code",
+        .handler = cmd_wait
     },
     {
         .name = "sleep",
@@ -248,6 +270,18 @@ static int cmd_threads(int argc, char **argv) {
     return 1;
 }
 
+static int cmd_ps(int argc, char **argv) {
+    (void)argv;
+
+    if (argc != 1) {
+        console_writeln("usage: ps");
+        return 1;
+    }
+
+    process_list();
+    return 1;
+}
+
 static int cmd_mem(int argc, char **argv) {
     (void)argv;
 
@@ -314,6 +348,75 @@ static int cmd_run(int argc, char **argv) {
     console_write(" exited code ");
     console_write_u32_dec(exit_code);
     console_putc('\n');
+
+    return 1;
+}
+
+static int cmd_runbg(int argc, char **argv) {
+    if (argc < 2) {
+        console_writeln("usage: runbg PROGRAM [ARGS...]");
+        return 1;
+    }
+
+    const char *program_name = argv[1];
+    int child_argc = argc - 1;
+    const char **child_argv = (const char **)&argv[1];
+    process_t *process = 0;
+
+    int rc = program_run_background(
+        program_name,
+        child_argc,
+        child_argv,
+        &process
+    );
+
+    if (rc != 0 || process == 0) {
+        console_write("runbg: unknown program ");
+        console_writeln(program_name);
+        console_writeln("type 'programs' to list available programs");
+        return 1;
+    }
+
+    console_write("runbg: started ");
+    console_write(program_name);
+    console_write(" pid=");
+    console_write_u32_dec(process->pid);
+    console_putc('\n');
+
+    return 1;
+}
+
+static int cmd_wait(int argc, char **argv) {
+    if (argc != 2) {
+        console_writeln("usage: wait PID");
+        return 1;
+    }
+
+    uint32_t pid = 0;
+
+    if (!parse_u32(argv[1], &pid)) {
+        console_writeln("wait: expected decimal PID");
+        return 1;
+    }
+
+    process_t *process = process_find(pid);
+
+    if (process == 0) {
+        console_write("wait: no such PID ");
+        console_write_u32_dec(pid);
+        console_putc('\n');
+        return 1;
+    }
+
+    uint32_t exit_code = process_wait(process);
+
+    console_write("wait: pid ");
+    console_write_u32_dec(pid);
+    console_write(" exited code ");
+    console_write_u32_dec(exit_code);
+    console_putc('\n');
+
+    process_destroy(process);
 
     return 1;
 }
@@ -429,8 +532,11 @@ void monitor_test_once(void) {
 
     monitor_execute_command("help ticks");
     monitor_execute_command("ticks");
+    monitor_execute_command("ps");
     monitor_execute_command("programs");
     monitor_execute_command("run");
+    monitor_execute_command("runbg");
+    monitor_execute_command("wait");
     monitor_execute_command("echo monitor ok");
     monitor_execute_command("unknown-test-command");
 

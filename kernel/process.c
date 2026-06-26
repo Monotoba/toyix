@@ -14,12 +14,16 @@
 #include "kernel/usermode.h"
 
 #define PROCESS_MAGIC 0x50524F43u
+#define PROCESS_SNAPSHOT_MAX 32u
 #define PROCESS_MAX_ARGC 16
 #define PROCESS_MAX_ARG_STRING 128
 
 static uint32_t next_pid;
 static volatile uint32_t last_exit_code;
 static volatile int last_exit_seen;
+static process_t *process_head;
+static process_t *process_tail;
+static uint32_t process_count;
 
 static void user_process_thread_entry(void *arg);
 
@@ -27,6 +31,9 @@ void process_init_system(void) {
     next_pid = 1;
     last_exit_code = 0xFFFFFFFFu;
     last_exit_seen = 0;
+    process_head = 0;
+    process_tail = 0;
+    process_count = 0;
 
     console_writeln("Process: process table initialized");
 }
@@ -46,6 +53,60 @@ static void validate_live_process(process_t *process) {
 
     if (process->state == PROCESS_DESTROYED) {
         kernel_panic("process: operation on destroyed process");
+    }
+}
+
+const char *process_state_name(process_state_t state) {
+    switch (state) {
+        case PROCESS_NEW:
+            return "new";
+        case PROCESS_RUNNING:
+            return "running";
+        case PROCESS_EXITED:
+            return "exited";
+        case PROCESS_DESTROYED:
+            return "destroyed";
+        default:
+            return "unknown";
+    }
+}
+
+static void process_table_insert(process_t *process) {
+    validate_process(process);
+
+    process->next = 0;
+    process->prev = process_tail;
+
+    if (process_tail != 0) {
+        process_tail->next = process;
+    } else {
+        process_head = process;
+    }
+
+    process_tail = process;
+    process_count++;
+}
+
+static void process_table_remove(process_t *process) {
+    validate_process(process);
+
+    if (process->prev != 0) {
+        process->prev->next = process->next;
+    } else {
+        process_head = process->next;
+    }
+
+    if (process->next != 0) {
+        process->next->prev = process->prev;
+    } else {
+        process_tail = process->prev;
+    }
+
+    process->next = 0;
+    process->prev = 0;
+
+    if (process_count > 0) {
+        process_count--;
     }
 }
 
@@ -69,6 +130,12 @@ process_t *process_create_empty(const char *name) {
     process->user_stack_base = 0;
     process->user_stack_top = 0;
     process->user_initial_esp = 0;
+    process->next = 0;
+    process->prev = 0;
+
+    irq_flags_t flags = irq_save();
+    process_table_insert(process);
+    irq_restore(flags);
 
     return process;
 }
@@ -391,6 +458,90 @@ process_t *process_current(void) {
     return (process_t *)thread_get_process(thread);
 }
 
+process_t *process_find(uint32_t pid) {
+    irq_flags_t flags = irq_save();
+    process_t *cur = process_head;
+
+    while (cur != 0) {
+        if (cur->pid == pid) {
+            irq_restore(flags);
+            return cur;
+        }
+
+        cur = cur->next;
+    }
+
+    irq_restore(flags);
+    return 0;
+}
+
+typedef struct process_snapshot {
+    uint32_t pid;
+    process_state_t state;
+    uint32_t exit_code;
+    int exited;
+    const char *name;
+} process_snapshot_t;
+
+void process_list(void) {
+    process_snapshot_t snapshots[PROCESS_SNAPSHOT_MAX];
+    uint32_t count = 0;
+
+    irq_flags_t flags = irq_save();
+    process_t *cur = process_head;
+
+    while (cur != 0 && count < PROCESS_SNAPSHOT_MAX) {
+        snapshots[count].pid = cur->pid;
+        snapshots[count].state = cur->state;
+        snapshots[count].exit_code = cur->exit_code;
+        snapshots[count].exited = cur->exited;
+        snapshots[count].name = cur->name;
+        count++;
+        cur = cur->next;
+    }
+
+    uint32_t total = process_count;
+    irq_restore(flags);
+
+    console_writeln("PID  STATE     EXIT  NAME");
+
+    for (uint32_t i = 0; i < count; ++i) {
+        console_write_u32_dec(snapshots[i].pid);
+
+        if (snapshots[i].pid < 10) {
+            console_write("    ");
+        } else if (snapshots[i].pid < 100) {
+            console_write("   ");
+        } else {
+            console_write("  ");
+        }
+
+        const char *state = process_state_name(snapshots[i].state);
+        console_write(state);
+
+        uint32_t state_len = (uint32_t)kstrlen(state);
+        while (state_len < 9) {
+            console_putc(' ');
+            state_len++;
+        }
+
+        if (snapshots[i].exited) {
+            console_write_u32_dec(snapshots[i].exit_code);
+        } else {
+            console_putc('-');
+        }
+
+        console_write("     ");
+        console_writeln(snapshots[i].name);
+    }
+
+    if (total > count) {
+        console_write("ps: truncated process list at ");
+        console_write_u32_dec(PROCESS_SNAPSHOT_MAX);
+        console_writeln(" entries");
+    }
+}
+
 void process_exit_current(uint32_t exit_code) {
     process_t *process = process_current();
 
@@ -447,12 +598,15 @@ void process_destroy(process_t *process) {
     uint32_t pid = process->pid;
     const char *name = process->name;
 
+    irq_flags_t flags = irq_save();
+    process_table_remove(process);
+    irq_restore(flags);
+
     if (process->address_space != 0) {
         address_space_destroy(process->address_space);
         process->address_space = 0;
     }
 
-    process->main_thread = 0;
     process->state = PROCESS_DESTROYED;
     process->magic = 0;
 

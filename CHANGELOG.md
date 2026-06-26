@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_26] - 2026-06-26
+
+- Add a global linked-list process table with PID lookup, state names, and monitor-friendly process listing.
+- Add `program_run_background()` plus `ps`, `runbg PROGRAM [ARGS...]`, and `wait PID` monitor commands.
+- Keep exited processes visible until explicit collection so the monitor can wait on and destroy them by PID.
+- Update boot smoke expectations for background launch, process table visibility, and PID-based wait/cleanup.
+- Update Chapter 26, the README, the series index, and the roadmap for the new process-management layer.
+
 ## [Chapter_25] - 2026-06-26
 
 - Add an embedded program registry with `embedded_program_t`, named lookup, and a foreground launch helper.

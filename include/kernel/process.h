@@ -34,6 +34,9 @@ typedef struct process {
     uintptr_t user_stack_base;
     uintptr_t user_stack_top;
     uintptr_t user_initial_esp;
+
+    struct process *next;
+    struct process *prev;
 } process_t;
 
 void process_init_system(void);
@@ -77,6 +80,10 @@ void process_start_user(process_t *process);
 process_t *process_current(void);
 
 void process_exit_current(uint32_t exit_code);
+
+process_t *process_find(uint32_t pid);
+void process_list(void);
+const char *process_state_name(process_state_t state);
 
 uint32_t process_wait(process_t *process);
 void process_destroy(process_t *process);

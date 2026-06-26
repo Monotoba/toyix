@@ -50,3 +50,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 23: Building a Real User C Program and Embedding Its ELF](articles/chapter_23.md)
 - [Chapter 24: User `argc` / `argv` and a Real Initial Stack](articles/chapter_24.md)
 - [Chapter 25: Embedded Program Registry and `run` Monitor Command](articles/chapter_25.md)
+- [Chapter 26: Process Table, `ps`, `runbg`, and `wait PID`](articles/chapter_26.md)

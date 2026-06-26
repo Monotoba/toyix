@@ -24,6 +24,13 @@ process_t *program_create_process(
     const char **argv
 );
 
+int program_run_background(
+    const char *name,
+    int argc,
+    const char **argv,
+    process_t **process_out
+);
+
 int program_run_foreground(
     const char *name,
     int argc,

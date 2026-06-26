@@ -120,9 +120,11 @@ int program_run_foreground(
     const char **argv,
     uint32_t *exit_code_out
 ) {
-    process_t *process = program_create_process(name, argc, argv);
+    process_t *process = 0;
 
-    if (process == 0) {
+    int rc = program_run_background(name, argc, argv, &process);
+
+    if (rc != 0 || process == 0) {
         return -1;
     }
 
@@ -137,8 +139,27 @@ int program_run_foreground(
     return 0;
 }
 
+int program_run_background(
+    const char *name,
+    int argc,
+    const char **argv,
+    process_t **process_out
+) {
+    process_t *process = program_create_process(name, argc, argv);
+
+    if (process == 0) {
+        return -1;
+    }
+
+    if (process_out != 0) {
+        *process_out = process;
+    }
+
+    return 0;
+}
+
 void program_test_once(void) {
-    console_writeln("Program test: starting embedded program run test");
+    console_writeln("Program test: starting background process table test");
 
     static const char *argv[] = {
         "demo",
@@ -146,11 +167,21 @@ void program_test_once(void) {
         "beta"
     };
 
-    process_t *process = program_create_process("demo", 3, argv);
+    process_t *process = 0;
 
-    if (process == 0) {
+    int rc = program_run_background("demo", 3, argv, &process);
+
+    if (rc != 0 || process == 0) {
         kernel_panic("program test could not launch demo");
     }
+
+    uint32_t pid = process->pid;
+
+    console_write("Program test: background pid=");
+    console_write_u32_dec(pid);
+    console_putc('\n');
+
+    process_list();
 
     thread_sleep_ticks(2);
 
@@ -161,13 +192,21 @@ void program_test_once(void) {
     keyboard_debug_inject_char('x');
     keyboard_debug_inject_char('\n');
 
+    process_t *found = process_find(pid);
+
+    if (found != process) {
+        kernel_panic("program test could not find background process by PID");
+    }
+
     uint32_t exit_code = process_wait(process);
 
     if (exit_code != 9) {
         kernel_panic("program test received wrong exit code");
     }
 
+    process_list();
+
     process_destroy(process);
 
-    console_writeln("Program test: embedded ELF program run cleanup sanity check passed");
+    console_writeln("Program test: background process table cleanup sanity check passed");
 }
