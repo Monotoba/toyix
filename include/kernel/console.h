@@ -2,6 +2,7 @@
 #ifndef TOYIX_KERNEL_CONSOLE_H
 #define TOYIX_KERNEL_CONSOLE_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct console_driver {
@@ -19,12 +20,14 @@ void console_unlock(void);
 
 void console_putc(char c);
 void console_write(const char *text);
+void console_write_n(const char *text, size_t length);
 void console_writeln(const char *text);
 void console_write_hex32(uint32_t value);
 void console_write_u32_dec(uint32_t value);
 
 void console_raw_putc(char c);
 void console_raw_write(const char *text);
+void console_raw_write_n(const char *text, size_t length);
 void console_raw_writeln(const char *text);
 void console_raw_write_hex32(uint32_t value);
 void console_raw_write_u32_dec(uint32_t value);

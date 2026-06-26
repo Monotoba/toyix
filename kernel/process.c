@@ -1,6 +1,7 @@
 // kernel/process.c
 #include <stddef.h>
 #include <stdint.h>
+#include "drivers/input/keyboard.h"
 #include "kernel/console.h"
 #include "kernel/heap.h"
 #include "kernel/panic.h"
@@ -17,6 +18,12 @@
 #define USER_PROCESS_CODE_VA   0x40100000u
 #define USER_PROCESS_STACK_VA  0x40101000u
 #define USER_PROCESS_STACK_TOP 0x40102000u
+#define USER_PROCESS_PROMPT_VA 0x401000A0u
+#define USER_PROCESS_PREFIX_VA 0x401000A8u
+#define USER_PROCESS_NEWLINE_VA 0x401000B0u
+#define USER_PROCESS_INPUT_VA  0x401000C0u
+
+#define USER_PROCESS_INPUT_MAX 32u
 
 static uint32_t next_pid;
 static volatile uint32_t last_exit_code;
@@ -166,45 +173,163 @@ static void user_process_thread_entry(void *arg) {
     kernel_panic("user process returned from user mode");
 }
 
-static const uint8_t user_process_demo[] = {
-    0xB8, SYS_WRITE, 0x00, 0x00, 0x00,
-    0xBB, 0x40,      0x00, 0x10, 0x40,
-    0xB9, 0x2Au,     0x00, 0x00, 0x00,
-    0xCD, 0x80,
+static void emit_u8(uint8_t *program, uint32_t *offset, uint8_t value) {
+    program[*offset] = value;
+    (*offset)++;
+}
 
-    0xB8, SYS_SLEEP, 0x00, 0x00, 0x00,
-    0xBB, 0x03,      0x00, 0x00, 0x00,
-    0xCD, 0x80,
+static void emit_u32(uint8_t *program, uint32_t *offset, uint32_t value) {
+    program[*offset + 0u] = (uint8_t)(value & 0xFFu);
+    program[*offset + 1u] = (uint8_t)((value >> 8) & 0xFFu);
+    program[*offset + 2u] = (uint8_t)((value >> 16) & 0xFFu);
+    program[*offset + 3u] = (uint8_t)((value >> 24) & 0xFFu);
+    *offset += 4u;
+}
 
-    0xB8, SYS_EXIT,  0x00, 0x00, 0x00,
-    0xBB, 0x07,      0x00, 0x00, 0x00,
-    0xCD, 0x80,
+static void emit_mov_eax_imm32(
+    uint8_t *program,
+    uint32_t *offset,
+    uint32_t value
+) {
+    emit_u8(program, offset, 0xB8u);
+    emit_u32(program, offset, value);
+}
 
-    0xEB, 0xFE,
+static void emit_mov_ebx_imm32(
+    uint8_t *program,
+    uint32_t *offset,
+    uint32_t value
+) {
+    emit_u8(program, offset, 0xBBu);
+    emit_u32(program, offset, value);
+}
 
-    0x90, 0x90, 0x90, 0x90,
-    0x90, 0x90, 0x90, 0x90,
-    0x90, 0x90, 0x90, 0x90,
-    0x90, 0x90, 0x90, 0x90,
-    0x90, 0x90, 0x90, 0x90,
-    0x90,
+static void emit_mov_ecx_imm32(
+    uint8_t *program,
+    uint32_t *offset,
+    uint32_t value
+) {
+    emit_u8(program, offset, 0xB9u);
+    emit_u32(program, offset, value);
+}
 
-    'U','s','e','r',' ','p','r','o','c','e','s','s',' ',
-    's','a','y','s',' ','h','e','l','l','o',' ','t','h',
-    'r','o','u','g','h',' ','S','Y','S','_','W','R','I','T','E','\n'
-};
+static void emit_mov_edx_imm32(
+    uint8_t *program,
+    uint32_t *offset,
+    uint32_t value
+) {
+    emit_u8(program, offset, 0xBAu);
+    emit_u32(program, offset, value);
+}
+
+static void emit_int80(uint8_t *program, uint32_t *offset) {
+    emit_u8(program, offset, 0xCDu);
+    emit_u8(program, offset, 0x80u);
+}
+
+static void build_stdio_demo_program(uint8_t *program, uint32_t program_size) {
+    memset(program, 0x90, program_size);
+
+    uint32_t offset = 0;
+
+    emit_mov_eax_imm32(program, &offset, SYS_WRITE);
+    emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
+    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_PROMPT_VA);
+    emit_mov_edx_imm32(program, &offset, 6);
+    emit_int80(program, &offset);
+
+    emit_mov_eax_imm32(program, &offset, SYS_READ);
+    emit_mov_ebx_imm32(program, &offset, FD_STDIN);
+    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_INPUT_VA);
+    emit_mov_edx_imm32(program, &offset, USER_PROCESS_INPUT_MAX);
+    emit_int80(program, &offset);
+
+    emit_u8(program, &offset, 0x89u);
+    emit_u8(program, &offset, 0xC6u);
+
+    emit_mov_eax_imm32(program, &offset, SYS_WRITE);
+    emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
+    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_PREFIX_VA);
+    emit_mov_edx_imm32(program, &offset, 6);
+    emit_int80(program, &offset);
+
+    emit_mov_eax_imm32(program, &offset, SYS_WRITE);
+    emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
+    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_INPUT_VA);
+
+    emit_u8(program, &offset, 0x89u);
+    emit_u8(program, &offset, 0xF2u);
+
+    emit_int80(program, &offset);
+
+    emit_mov_eax_imm32(program, &offset, SYS_WRITE);
+    emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
+    emit_mov_ecx_imm32(program, &offset, USER_PROCESS_NEWLINE_VA);
+    emit_mov_edx_imm32(program, &offset, 1);
+    emit_int80(program, &offset);
+
+    emit_mov_eax_imm32(program, &offset, SYS_SLEEP);
+    emit_mov_ebx_imm32(program, &offset, 3);
+    emit_int80(program, &offset);
+
+    emit_mov_eax_imm32(program, &offset, SYS_EXIT);
+    emit_mov_ebx_imm32(program, &offset, 9);
+    emit_int80(program, &offset);
+
+    emit_u8(program, &offset, 0xEBu);
+    emit_u8(program, &offset, 0xFEu);
+
+    if (offset >= 0xA0u) {
+        kernel_panic("stdio demo program overlapped data area");
+    }
+
+    const char prompt[] = "user> ";
+    const char prefix[] = "echo: ";
+    const char newline[] = "\n";
+
+    memcpy(
+        &program[USER_PROCESS_PROMPT_VA - USER_PROCESS_CODE_VA],
+        prompt,
+        sizeof(prompt) - 1u
+    );
+
+    memcpy(
+        &program[USER_PROCESS_PREFIX_VA - USER_PROCESS_CODE_VA],
+        prefix,
+        sizeof(prefix) - 1u
+    );
+
+    memcpy(
+        &program[USER_PROCESS_NEWLINE_VA - USER_PROCESS_CODE_VA],
+        newline,
+        1u
+    );
+}
 
 void process_test_once(void) {
-    console_writeln("Process test: starting user process syscall test");
+    console_writeln("Process test: starting fd read/write user process test");
 
     last_exit_seen = 0;
     last_exit_code = 0xFFFFFFFFu;
 
+    static uint8_t program[256];
+
+    build_stdio_demo_program(program, sizeof(program));
+
     process_create_user(
-        "user-demo",
-        user_process_demo,
-        sizeof(user_process_demo)
+        "stdio-demo",
+        program,
+        sizeof(program)
     );
+
+    thread_sleep_ticks(2);
+
+    keyboard_debug_inject_char('t');
+    keyboard_debug_inject_char('o');
+    keyboard_debug_inject_char('y');
+    keyboard_debug_inject_char('i');
+    keyboard_debug_inject_char('x');
+    keyboard_debug_inject_char('\n');
 
     while (!last_exit_seen) {
         thread_sleep_ticks(1);
@@ -213,9 +338,9 @@ void process_test_once(void) {
 
     thread_reap_zombies();
 
-    if (last_exit_code != 7) {
-        kernel_panic("process test received wrong exit code");
+    if (last_exit_code != 9) {
+        kernel_panic("process fd syscall test received wrong exit code");
     }
 
-    console_writeln("Process test: user process syscall/write/sleep/exit sanity check passed");
+    console_writeln("Process test: fd read/write/sleep/exit sanity check passed");
 }

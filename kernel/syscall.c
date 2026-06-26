@@ -3,30 +3,73 @@
 #include "kernel/console.h"
 #include "kernel/process.h"
 #include "kernel/syscall.h"
+#include "kernel/terminal.h"
 #include "kernel/thread.h"
 #include "kernel/usercopy.h"
 
-#define SYSCALL_WRITE_MAX 256u
+#define SYSCALL_RW_MAX 256u
 
 static void syscall_write(interrupt_frame_t *frame) {
-    uintptr_t user_buf = (uintptr_t)frame->ebx;
-    uint32_t length = frame->ecx;
+    uint32_t fd = frame->ebx;
+    uintptr_t user_buf = (uintptr_t)frame->ecx;
+    uint32_t length = frame->edx;
 
-    if (length > SYSCALL_WRITE_MAX) {
-        length = SYSCALL_WRITE_MAX;
+    if (fd != FD_STDOUT && fd != FD_STDERR) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
     }
 
-    char buffer[SYSCALL_WRITE_MAX + 1u];
+    if (length > SYSCALL_RW_MAX) {
+        length = SYSCALL_RW_MAX;
+    }
+
+    if (length == 0) {
+        frame->eax = 0;
+        return;
+    }
+
+    char buffer[SYSCALL_RW_MAX];
 
     if (copy_from_user(buffer, user_buf, length) != USERCOPY_OK) {
         frame->eax = 0xFFFFFFFFu;
         return;
     }
 
-    buffer[length] = '\0';
-    console_write(buffer);
+    console_write_n(buffer, length);
 
     frame->eax = length;
+}
+
+static void syscall_read(interrupt_frame_t *frame) {
+    uint32_t fd = frame->ebx;
+    uintptr_t user_buf = (uintptr_t)frame->ecx;
+    uint32_t length = frame->edx;
+
+    if (fd != FD_STDIN) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (length > SYSCALL_RW_MAX) {
+        length = SYSCALL_RW_MAX;
+    }
+
+    if (length == 0) {
+        frame->eax = 0;
+        return;
+    }
+
+    char buffer[SYSCALL_RW_MAX + 1u];
+
+    interrupts_enable();
+    size_t got = terminal_readline(buffer, (size_t)length + 1u);
+
+    if (copy_to_user(user_buf, buffer, got) != USERCOPY_OK) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    frame->eax = (uint32_t)got;
 }
 
 void syscall_handler(interrupt_frame_t *frame) {
@@ -43,6 +86,10 @@ void syscall_handler(interrupt_frame_t *frame) {
             frame->eax = 0;
             return;
         }
+
+        case SYS_READ:
+            syscall_read(frame);
+            return;
 
         case SYS_WRITE:
             syscall_write(frame);

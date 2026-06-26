@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_18] - 2026-06-26
+
+- Add byte-counted console output helpers for fd-style writes.
+- Add `FD_STDIN`, `FD_STDOUT`, `FD_STDERR`, and `SYS_READ`.
+- Update `SYS_WRITE` to use fd, user buffer, and byte count registers.
+- Replace the user process demo with a prompt/read/echo/sleep/exit fd syscall test.
+- Update Chapter 18, the README, the series index, and smoke suite expectations.
+
 ## [Chapter_17] - 2026-06-26
 
 - Add a minimal `process_t` abstraction and attach user threads to processes.

@@ -42,3 +42,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 15: Command Tables, Argument Parsing, and Shift-Aware Keyboard Input](articles/chapter_15.md)
 - [Chapter 16: Entering User Mode and Returning Through Syscalls](articles/chapter_16.md)
 - [Chapter 17: Minimal Processes, User Memory Copying, and More Robust Syscalls](articles/chapter_17.md)
+- [Chapter 18: File-Descriptor Syscalls and a Tiny User-Mode Console Program](articles/chapter_18.md)

@@ -84,6 +84,15 @@ void console_raw_write(const char *text) {
     }
 }
 
+void console_raw_write_n(const char *text, size_t length) {
+    if (text == NULL) {
+        return;
+    }
+
+    for (size_t i = 0; i < length; ++i) {
+        console_raw_putc(text[i]);
+    }
+}
 
 void console_raw_writeln(const char *text) {
     console_raw_write(text);
@@ -138,6 +147,11 @@ void console_write(const char *text) {
     console_unlock();
 }
 
+void console_write_n(const char *text, size_t length) {
+    console_lock();
+    console_raw_write_n(text, length);
+    console_unlock();
+}
 
 void console_writeln(const char *text) {
     console_lock();

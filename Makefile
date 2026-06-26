@@ -135,17 +135,18 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "Process test: starting user process syscall test" build/test.log
-	grep -q "Process: created pid=1 name=user-demo" build/test.log
-	grep -q "User process says hello through SYS_WRITE" build/test.log
-	grep -q "Syscall: process user-demo pid=1 exited code 7" build/test.log
-	grep -q "Process test: user process syscall/write/sleep/exit sanity check passed" build/test.log
+	grep -q "Process test: starting fd read/write user process test" build/test.log
+	grep -q "Process: created pid=1 name=stdio-demo" build/test.log
+	grep -q "user>" build/test.log
+	grep -q "echo: toyix" build/test.log
+	grep -q "Syscall: process stdio-demo pid=1 exited code 9" build/test.log
+	grep -q "Process test: fd read/write/sleep/exit sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, process, and user syscall smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, and fd syscall smoke test passed."
 
 test-exception:
 	$(MAKE) clean
