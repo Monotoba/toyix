@@ -84,6 +84,4 @@ void process_destroy(process_t *process);
 uint32_t process_last_exit_code(void);
 int process_last_exit_seen(void);
 
-void process_test_once(void);
-
 #endif

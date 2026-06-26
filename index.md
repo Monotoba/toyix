@@ -49,3 +49,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 22: First ELF32 Loader Milestone](articles/chapter_22.md)
 - [Chapter 23: Building a Real User C Program and Embedding Its ELF](articles/chapter_23.md)
 - [Chapter 24: User `argc` / `argv` and a Real Initial Stack](articles/chapter_24.md)
+- [Chapter 25: Embedded Program Registry and `run` Monitor Command](articles/chapter_25.md)

@@ -2,10 +2,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "arch/x86/irq_state.h"
-#include "drivers/input/keyboard.h"
 #include "kernel/address_space.h"
 #include "kernel/console.h"
-#include "kernel/elf_loader.h"
 #include "kernel/heap.h"
 #include "kernel/panic.h"
 #include "kernel/pmm.h"
@@ -484,63 +482,4 @@ static void user_process_thread_entry(void *arg) {
     usermode_enter_current_process();
 
     kernel_panic("user process returned from user mode");
-}
-
-extern const uint8_t user_demo_elf_start[];
-extern const uint8_t user_demo_elf_end[];
-
-void process_test_once(void) {
-    console_writeln("Process test: starting compiled ELF32 argv user program test");
-
-    last_exit_seen = 0;
-    last_exit_code = 0xFFFFFFFFu;
-
-    const uint8_t *elf_image = user_demo_elf_start;
-    uint32_t elf_size =
-        (uint32_t)(user_demo_elf_end - user_demo_elf_start);
-
-    if (elf_size == 0) {
-        kernel_panic("compiled user ELF image is empty");
-    }
-
-    process_t *process = elf_create_process_suspended(
-        "compiled-demo",
-        elf_image,
-        elf_size
-    );
-
-    static const char *argv[] = {
-        "demo",
-        "alpha",
-        "beta"
-    };
-
-    if (process_setup_arguments(process, 3, argv) != 0) {
-        kernel_panic("process argv setup failed");
-    }
-
-    process_start_user(process);
-
-    thread_sleep_ticks(2);
-
-    keyboard_debug_inject_char('t');
-    keyboard_debug_inject_char('o');
-    keyboard_debug_inject_char('y');
-    keyboard_debug_inject_char('i');
-    keyboard_debug_inject_char('x');
-    keyboard_debug_inject_char('\n');
-
-    uint32_t exit_code = process_wait(process);
-
-    if (exit_code != 9) {
-        kernel_panic("compiled ELF argv process test received wrong exit code");
-    }
-
-    process_destroy(process);
-
-    if (last_exit_code != 9 || !last_exit_seen) {
-        kernel_panic("compiled ELF process test missing exit diagnostics");
-    }
-
-    console_writeln("Process test: compiled ELF32 argv cleanup sanity check passed");
 }

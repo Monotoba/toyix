@@ -80,6 +80,7 @@ OBJS := \
     build/kernel/panic.o \
     build/kernel/pmm.o \
     build/kernel/process.o \
+    build/kernel/program.o \
     build/kernel/sync.o \
     build/kernel/syscall.o \
     build/kernel/terminal.o \
@@ -186,27 +187,31 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "Process test: starting compiled ELF32 argv user program test" build/test.log
+	grep -q "Program registry: registered 1 embedded program(s)" build/test.log
+	grep -q "Embedded programs:" build/test.log
+	grep -q "demo - compiled user-mode demo program" build/test.log
+	grep -q "Program test: starting embedded program run test" build/test.log
 	grep -q "Address space: created process page directory" build/test.log
 	grep -q "ELF32: loaded PT_LOAD vaddr=0x40100000" build/test.log
 	grep -q "ELF32: entry=0x40100000" build/test.log
 	grep -q "Process: initial stack argc=3" build/test.log
-	grep -q "Process: created pid=1 name=compiled-demo" build/test.log
+	grep -q "Program: launching demo argc=3" build/test.log
+	grep -q "Process: created pid=1 name=demo" build/test.log
 	grep -q "argc=3" build/test.log
 	grep -q "argv\\[0\\]=demo" build/test.log
 	grep -q "argv\\[1\\]=alpha" build/test.log
 	grep -q "argv\\[2\\]=beta" build/test.log
 	grep -q "echo: toyix" build/test.log
-	grep -q "Syscall: process compiled-demo pid=1 exited code 9" build/test.log
+	grep -q "Syscall: process demo pid=1 exited code 9" build/test.log
 	grep -q "Address space: destroyed process page directory" build/test.log
-	grep -q "Process: destroyed pid=1 name=compiled-demo" build/test.log
-	grep -q "Process test: compiled ELF32 argv cleanup sanity check passed" build/test.log
+	grep -q "Process: destroyed pid=1 name=demo" build/test.log
+	grep -q "Program test: embedded ELF program run cleanup sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, address-space, ELF, and argv stack smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, program registry, and run command smoke test passed."
 
 test-exception:
 	$(MAKE) clean

@@ -16,6 +16,7 @@
 #include "kernel/panic.h"
 #include "kernel/pmm.h"
 #include "kernel/process.h"
+#include "kernel/program.h"
 #include "kernel/sync.h"
 #include "kernel/terminal.h"
 #include "kernel/thread.h"
@@ -67,6 +68,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     threading_init();
     process_init_system();
+    program_registry_init();
     thread_test_once();
 
 #ifdef TOYIX_TRIGGER_PAGE_FAULT
@@ -107,7 +109,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     monitor_init();
     monitor_test_once();
-    process_test_once();
+    program_test_once();
     monitor_start();
 
     pit_wait_ticks(3);

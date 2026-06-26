@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_25] - 2026-06-26
+
+- Add an embedded program registry with `embedded_program_t`, named lookup, and a foreground launch helper.
+- Add `programs` and `run PROGRAM [ARGS...]` monitor commands for listing and launching embedded user programs.
+- Move the Chapter 24 compiled-user launch test out of `process.c` and into a dedicated program-layer smoke path.
+- Update boot smoke expectations for registry initialization, monitor command coverage, and foreground `demo` launch output.
+- Update Chapter 25, the README, the series index, and the roadmap for the new program-launch layer.
+
 ## [Chapter_24] - 2026-06-26
 
 - Add `process->user_initial_esp` and a `process_setup_arguments()` helper for building user stacks in the target address space.

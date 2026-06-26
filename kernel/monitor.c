@@ -2,6 +2,7 @@
 #include "kernel/console.h"
 #include "kernel/heap.h"
 #include "kernel/monitor.h"
+#include "kernel/program.h"
 #include "kernel/pmm.h"
 #include "kernel/string.h"
 #include "kernel/terminal.h"
@@ -26,6 +27,8 @@ static int cmd_ticks(int argc, char **argv);
 static int cmd_threads(int argc, char **argv);
 static int cmd_mem(int argc, char **argv);
 static int cmd_heap(int argc, char **argv);
+static int cmd_programs(int argc, char **argv);
+static int cmd_run(int argc, char **argv);
 static int cmd_sleep(int argc, char **argv);
 static int cmd_echo(int argc, char **argv);
 static int cmd_clear(int argc, char **argv);
@@ -60,6 +63,18 @@ static const monitor_command_t commands[] = {
         .usage = "heap",
         .help = "show kernel heap stats",
         .handler = cmd_heap
+    },
+    {
+        .name = "programs",
+        .usage = "programs",
+        .help = "list embedded user programs",
+        .handler = cmd_programs
+    },
+    {
+        .name = "run",
+        .usage = "run PROGRAM [ARGS...]",
+        .help = "run an embedded user program in the foreground",
+        .handler = cmd_run
     },
     {
         .name = "sleep",
@@ -257,6 +272,52 @@ static int cmd_heap(int argc, char **argv) {
     return 1;
 }
 
+static int cmd_programs(int argc, char **argv) {
+    (void)argv;
+
+    if (argc != 1) {
+        console_writeln("usage: programs");
+        return 1;
+    }
+
+    program_list();
+    return 1;
+}
+
+static int cmd_run(int argc, char **argv) {
+    if (argc < 2) {
+        console_writeln("usage: run PROGRAM [ARGS...]");
+        return 1;
+    }
+
+    const char *program_name = argv[1];
+    int child_argc = argc - 1;
+    const char **child_argv = (const char **)&argv[1];
+    uint32_t exit_code = 0xFFFFFFFFu;
+
+    int rc = program_run_foreground(
+        program_name,
+        child_argc,
+        child_argv,
+        &exit_code
+    );
+
+    if (rc != 0) {
+        console_write("run: unknown program ");
+        console_writeln(program_name);
+        console_writeln("type 'programs' to list available programs");
+        return 1;
+    }
+
+    console_write("run: ");
+    console_write(program_name);
+    console_write(" exited code ");
+    console_write_u32_dec(exit_code);
+    console_putc('\n');
+
+    return 1;
+}
+
 static int cmd_sleep(int argc, char **argv) {
     uint32_t ticks = 0;
 
@@ -368,6 +429,8 @@ void monitor_test_once(void) {
 
     monitor_execute_command("help ticks");
     monitor_execute_command("ticks");
+    monitor_execute_command("programs");
+    monitor_execute_command("run");
     monitor_execute_command("echo monitor ok");
     monitor_execute_command("unknown-test-command");
 
