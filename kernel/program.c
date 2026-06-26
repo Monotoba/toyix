@@ -1,24 +1,30 @@
 // kernel/program.c
 #include <stddef.h>
 #include <stdint.h>
-#include "drivers/input/keyboard.h"
 #include "kernel/console.h"
 #include "kernel/elf_loader.h"
 #include "kernel/panic.h"
 #include "kernel/process.h"
 #include "kernel/program.h"
 #include "kernel/string.h"
-#include "kernel/thread.h"
 
 extern const uint8_t user_demo_elf_start[];
 extern const uint8_t user_demo_elf_end[];
+extern const uint8_t user_counter_elf_start[];
+extern const uint8_t user_counter_elf_end[];
 
 static const embedded_program_t programs[] = {
     {
         .name = "demo",
-        .description = "compiled user-mode demo program",
+        .description = "interactive stdin/stdout demo",
         .image_start = user_demo_elf_start,
         .image_end = user_demo_elf_end
+    },
+    {
+        .name = "counter",
+        .description = "background-safe counter demo",
+        .image_start = user_counter_elf_start,
+        .image_end = user_counter_elf_end
     }
 };
 
@@ -159,20 +165,20 @@ int program_run_background(
 }
 
 void program_test_once(void) {
-    console_writeln("Program test: starting background process table test");
+    console_writeln("Program test: starting background counter test");
 
     static const char *argv[] = {
-        "demo",
+        "counter",
         "alpha",
         "beta"
     };
 
     process_t *process = 0;
 
-    int rc = program_run_background("demo", 3, argv, &process);
+    int rc = program_run_background("counter", 3, argv, &process);
 
     if (rc != 0 || process == 0) {
-        kernel_panic("program test could not launch demo");
+        kernel_panic("program test could not launch counter");
     }
 
     uint32_t pid = process->pid;
@@ -183,15 +189,6 @@ void program_test_once(void) {
 
     process_list();
 
-    thread_sleep_ticks(2);
-
-    keyboard_debug_inject_char('t');
-    keyboard_debug_inject_char('o');
-    keyboard_debug_inject_char('y');
-    keyboard_debug_inject_char('i');
-    keyboard_debug_inject_char('x');
-    keyboard_debug_inject_char('\n');
-
     process_t *found = process_find(pid);
 
     if (found != process) {
@@ -200,13 +197,13 @@ void program_test_once(void) {
 
     uint32_t exit_code = process_wait(process);
 
-    if (exit_code != 9) {
-        kernel_panic("program test received wrong exit code");
+    if (exit_code != 4) {
+        kernel_panic("program test received wrong counter exit code");
     }
 
     process_list();
 
     process_destroy(process);
 
-    console_writeln("Program test: background process table cleanup sanity check passed");
+    console_writeln("Program test: background counter cleanup sanity check passed");
 }

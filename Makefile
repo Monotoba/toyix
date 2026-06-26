@@ -51,8 +51,7 @@ USER_LDFLAGS := \
            -ffreestanding \
            -m32 \
            -Wl,-T,user/linker.ld \
-           -Wl,--build-id=none \
-           -Wl,-Map,build/user/demo.map
+           -Wl,--build-id=none
 
 OBJS := \
     build/arch/x86/boot.o \
@@ -93,7 +92,8 @@ OBJS := \
     build/drivers/console/serial.o \
     build/drivers/console/vga_text.o \
     build/drivers/input/keyboard.o \
-    build/user/demo_elf_blob.o
+    build/user/demo_elf_blob.o \
+    build/user/counter_elf_blob.o
 
 .PHONY: all clean iso run test test-exception test-page-fault FORCE
 
@@ -127,7 +127,7 @@ build/user/demo.o: user/demo.c user/include/toyix_syscall.h | build/user
 	$(CC) $(USER_CFLAGS) -c $< -o $@
 
 build/user/demo.elf: build/user/crt0.o build/user/demo.o user/linker.ld | build/user
-	$(CC) $(USER_LDFLAGS) build/user/crt0.o build/user/demo.o -o $@
+	$(CC) $(USER_LDFLAGS) -Wl,-Map,build/user/demo.map build/user/crt0.o build/user/demo.o -o $@
 
 build/user/demo_elf_blob.o: build/user/demo.elf | build/user
 	$(OBJCOPY) \
@@ -137,6 +137,22 @@ build/user/demo_elf_blob.o: build/user/demo.elf | build/user
 		--rename-section .data=.rodata.userdemo,alloc,load,readonly,data,contents \
 		--redefine-sym _binary_build_user_demo_elf_start=user_demo_elf_start \
 		--redefine-sym _binary_build_user_demo_elf_end=user_demo_elf_end \
+		$< $@
+
+build/user/counter.o: user/counter.c user/include/toyix_syscall.h | build/user
+	$(CC) $(USER_CFLAGS) -c $< -o $@
+
+build/user/counter.elf: build/user/crt0.o build/user/counter.o user/linker.ld | build/user
+	$(CC) $(USER_LDFLAGS) -Wl,-Map,build/user/counter.map build/user/crt0.o build/user/counter.o -o $@
+
+build/user/counter_elf_blob.o: build/user/counter.elf | build/user
+	$(OBJCOPY) \
+		-I binary \
+		-O elf32-i386 \
+		-B i386 \
+		--rename-section .data=.rodata.usercounter,alloc,load,readonly,data,contents \
+		--redefine-sym _binary_build_user_counter_elf_start=user_counter_elf_start \
+		--redefine-sym _binary_build_user_counter_elf_end=user_counter_elf_end \
 		$< $@
 
 build/kernel.elf: $(OBJS) linker.ld
@@ -187,35 +203,38 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "Program registry: registered 1 embedded program(s)" build/test.log
+	grep -q "Program registry: registered 2 embedded program(s)" build/test.log
 	grep -q "Embedded programs:" build/test.log
-	grep -q "demo - compiled user-mode demo program" build/test.log
+	grep -q "demo - interactive stdin/stdout demo" build/test.log
+	grep -q "counter - background-safe counter demo" build/test.log
 	grep -q "usage: runbg PROGRAM" build/test.log
 	grep -q "usage: wait PID" build/test.log
-	grep -q "Program test: starting background process table test" build/test.log
+	grep -q "Program test: starting background counter test" build/test.log
 	grep -q "Address space: created process page directory" build/test.log
 	grep -q "ELF32: loaded PT_LOAD vaddr=0x40100000" build/test.log
 	grep -q "ELF32: entry=0x40100000" build/test.log
 	grep -q "Process: initial stack argc=3" build/test.log
-	grep -q "Program: launching demo argc=3" build/test.log
-	grep -q "Process: created pid=1 name=demo" build/test.log
+	grep -q "Program: launching counter argc=3" build/test.log
+	grep -q "Process: created pid=1 name=counter" build/test.log
 	grep -q "Program test: background pid=1" build/test.log
 	grep -q "PID  STATE" build/test.log
-	grep -q "argc=3" build/test.log
-	grep -q "argv\\[0\\]=demo" build/test.log
-	grep -q "argv\\[1\\]=alpha" build/test.log
-	grep -q "argv\\[2\\]=beta" build/test.log
-	grep -q "echo: toyix" build/test.log
-	grep -q "Syscall: process demo pid=1 exited code 9" build/test.log
+	grep -q "counter: argc=3" build/test.log
+	grep -q "counter: argv\\[0\\]=counter" build/test.log
+	grep -q "counter: argv\\[1\\]=alpha" build/test.log
+	grep -q "counter: argv\\[2\\]=beta" build/test.log
+	grep -q "counter: tick 1" build/test.log
+	grep -q "counter: tick 2" build/test.log
+	grep -q "counter: tick 3" build/test.log
+	grep -q "Syscall: process counter pid=1 exited code 4" build/test.log
 	grep -q "Address space: destroyed process page directory" build/test.log
-	grep -q "Process: destroyed pid=1 name=demo" build/test.log
-	grep -q "Program test: background process table cleanup sanity check passed" build/test.log
+	grep -q "Process: destroyed pid=1 name=counter" build/test.log
+	grep -q "Program test: background counter cleanup sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, process table, and runbg/wait smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, process table, and background counter smoke test passed."
 
 test-exception:
 	$(MAKE) clean

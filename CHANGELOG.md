@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_27] - 2026-06-26
+
+- Add a second embedded user program, `counter`, that prints its arguments, sleeps between ticks, and exits with a predictable status code.
+- Expand the userland build pipeline to compile, link, and embed both `demo.elf` and `counter.elf` into the kernel image.
+- Replace the Chapter 26 background-launch smoke path with a dedicated `counter` test that verifies PID lookup, process listing, wait, exit status, and cleanup without keyboard input contention.
+- Update Chapter 27, the README, the series index, the roadmap, and smoke suite expectations for the multi-program embedded userland milestone.
+
 ## [Chapter_26] - 2026-06-26
 
 - Add a global linked-list process table with PID lookup, state names, and monitor-friendly process listing.
