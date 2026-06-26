@@ -55,6 +55,14 @@ thread_t *thread_create(
 	void *arg
 );
 
+thread_t *thread_create_suspended(
+	const char *name,
+	thread_entry_t entry,
+	void *arg
+);
+
+void thread_start(thread_t *thread);
+
 thread_t *thread_current(void);
 void thread_set_process(thread_t *thread, struct process *process);
 struct process *thread_get_process(thread_t *thread);

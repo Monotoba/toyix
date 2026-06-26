@@ -45,6 +45,7 @@ OBJS := \
     build/arch/x86/syscall.o \
     build/arch/x86/user_enter.o \
     build/arch/x86/vmm.o \
+    build/kernel/address_space.o \
     build/kernel/kmain.o \
     build/kernel/idle.o \
     build/kernel/console.o \
@@ -118,6 +119,7 @@ test: iso
 	grep -q "PMM test: allocation/free sanity check passed" build/test.log
 	grep -q "Paging: enabled with identity map of first 16 MiB" build/test.log
 	grep -q "Paging test: identity-mapped kernel data is readable/writable" build/test.log
+	grep -q "Address space: kernel address space registered" build/test.log
 	grep -q "Heap: initialized virtual heap with 4 page(s)" build/test.log
 	grep -q "Heap test: VMM-backed allocation/free sanity check passed" build/test.log
 	grep -q "Threads: blocking scheduler initialized" build/test.log
@@ -135,18 +137,19 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "Process test: starting fd read/write user process test" build/test.log
+	grep -q "Process test: starting isolated address-space syscall test" build/test.log
+	grep -q "Address space: created process page directory" build/test.log
 	grep -q "Process: created pid=1 name=stdio-demo" build/test.log
 	grep -q "user>" build/test.log
 	grep -q "echo: toyix" build/test.log
 	grep -q "Syscall: process stdio-demo pid=1 exited code 9" build/test.log
-	grep -q "Process test: fd read/write/sleep/exit sanity check passed" build/test.log
+	grep -q "Process test: isolated address-space syscall sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, and fd syscall smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, and isolated address-space syscall smoke test passed."
 
 test-exception:
 	$(MAKE) clean

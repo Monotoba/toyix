@@ -1,9 +1,9 @@
 // kernel/usercopy.c
 #include <stddef.h>
 #include <stdint.h>
+#include "kernel/address_space.h"
 #include "kernel/string.h"
 #include "kernel/usercopy.h"
-#include "kernel/vmem.h"
 
 static int user_range_accessible(uintptr_t user_addr, size_t size) {
     if (size == 0) {
@@ -14,11 +14,16 @@ static int user_range_accessible(uintptr_t user_addr, size_t size) {
         return 0;
     }
 
+    uintptr_t start = user_addr;
     uintptr_t end = user_addr + size - 1u;
-    uintptr_t page = user_addr & ~(uintptr_t)0xFFFu;
+    uintptr_t page = start & ~(uintptr_t)0xFFFu;
+
+    address_space_t *space = address_space_current();
 
     while (page <= end) {
-        if (!vmem_is_user_accessible(page)) {
+        uint32_t flags = address_space_get_flags(space, page);
+
+        if ((flags & ADDRESS_SPACE_FLAG_USER) == 0) {
             return 0;
         }
 

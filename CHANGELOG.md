@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_19] - 2026-06-26
+
+- Add per-process address spaces with private user mappings and shared kernel mappings.
+- Add scheduler CR3 switching based on the next thread's owning process.
+- Add suspended thread creation so process metadata is attached before user threads run.
+- Update checked user-memory copying to validate against the current address space.
+- Update Chapter 19, the README, the series index, and smoke suite expectations.
+
 ## [Chapter_18] - 2026-06-26
 
 - Add byte-counted console output helpers for fd-style writes.

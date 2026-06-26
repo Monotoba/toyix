@@ -8,6 +8,7 @@
 #include "arch/x86/pic.h"
 #include "arch/x86/pit.h"
 #include "drivers/input/keyboard.h"
+#include "kernel/address_space.h"
 #include "kernel/idle.h"
 #include "kernel/console.h"
 #include "kernel/heap.h"
@@ -58,6 +59,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     paging_test_identity_mapping();
     
     vmem_init();
+    address_space_init();
     vmem_test_once();
 
     heap_init(4);

@@ -1,7 +1,9 @@
 // kernel/process.c
 #include <stddef.h>
 #include <stdint.h>
+#include "arch/x86/irq_state.h"
 #include "drivers/input/keyboard.h"
+#include "kernel/address_space.h"
 #include "kernel/console.h"
 #include "kernel/heap.h"
 #include "kernel/panic.h"
@@ -11,7 +13,6 @@
 #include "kernel/syscall.h"
 #include "kernel/thread.h"
 #include "kernel/usermode.h"
-#include "kernel/vmem.h"
 
 #define PROCESS_MAGIC 0x50524F43u
 
@@ -39,24 +40,23 @@ void process_init_system(void) {
     console_writeln("Process: process table initialized");
 }
 
-static void map_user_page(uintptr_t virtual_addr) {
+static void map_user_page(address_space_t *space, uintptr_t virtual_addr) {
     uintptr_t physical = pmm_alloc_page();
 
     if (physical == PMM_INVALID_PAGE) {
         kernel_panic("process could not allocate user page");
     }
 
-    int rc = vmem_map_page(
+    int rc = address_space_map_page(
+        space,
         virtual_addr,
         physical,
-        VMEM_FLAG_WRITABLE | VMEM_FLAG_USER
+        ADDRESS_SPACE_FLAG_WRITABLE | ADDRESS_SPACE_FLAG_USER
     );
 
-    if (rc != VMEM_OK) {
+    if (rc != 0) {
         kernel_panic("process could not map user page");
     }
-
-    memset((void *)virtual_addr, 0, PMM_PAGE_SIZE);
 }
 
 process_t *process_create_user(
@@ -90,21 +90,35 @@ process_t *process_create_user(
     process->user_stack_base = USER_PROCESS_STACK_VA;
     process->user_stack_top = USER_PROCESS_STACK_TOP;
 
-    map_user_page(process->user_code_base);
-    map_user_page(process->user_stack_base);
-
-    memcpy((void *)process->user_code_base, program, program_size);
-
-    thread_t *thread = thread_create(
+    thread_t *thread = thread_create_suspended(
         process->name,
         user_process_thread_entry,
         process
     );
 
+    process->address_space = address_space_create();
+
+    map_user_page(process->address_space, process->user_code_base);
+    map_user_page(process->address_space, process->user_stack_base);
+
+    irq_flags_t flags = irq_save();
+    address_space_t *old_space = address_space_current();
+
+    address_space_switch(process->address_space);
+
+    memset((void *)process->user_code_base, 0x90, PMM_PAGE_SIZE);
+    memcpy((void *)process->user_code_base, program, program_size);
+    memset((void *)process->user_stack_base, 0, PMM_PAGE_SIZE);
+
+    address_space_switch(old_space);
+    irq_restore(flags);
+
     thread_set_process(thread, process);
 
     process->main_thread = thread;
     process->state = PROCESS_RUNNING;
+
+    thread_start(thread);
 
     console_write("Process: created pid=");
     console_write_u32_dec(process->pid);
@@ -307,7 +321,7 @@ static void build_stdio_demo_program(uint8_t *program, uint32_t program_size) {
 }
 
 void process_test_once(void) {
-    console_writeln("Process test: starting fd read/write user process test");
+    console_writeln("Process test: starting isolated address-space syscall test");
 
     last_exit_seen = 0;
     last_exit_code = 0xFFFFFFFFu;
@@ -339,8 +353,8 @@ void process_test_once(void) {
     thread_reap_zombies();
 
     if (last_exit_code != 9) {
-        kernel_panic("process fd syscall test received wrong exit code");
+        kernel_panic("process address-space syscall test received wrong exit code");
     }
 
-    console_writeln("Process test: fd read/write/sleep/exit sanity check passed");
+    console_writeln("Process test: isolated address-space syscall sanity check passed");
 }

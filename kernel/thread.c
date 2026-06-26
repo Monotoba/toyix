@@ -4,9 +4,11 @@
 #include "arch/x86/gdt.h"
 #include "arch/x86/interrupts.h"
 #include "arch/x86/irq_state.h"
+#include "kernel/address_space.h"
 #include "kernel/console.h"
 #include "kernel/heap.h"
 #include "kernel/panic.h"
+#include "kernel/process.h"
 #include "kernel/string.h"
 #include "kernel/thread.h"
 
@@ -95,6 +97,18 @@ static uint32_t thread_kernel_stack_top(thread_t *thread) {
 	}
 
 	return (uint32_t)((uintptr_t)thread->stack_base + thread->stack_size);
+}
+
+static address_space_t *thread_address_space(thread_t *thread) {
+	if (thread == 0 || thread->process == 0) {
+		return address_space_kernel();
+	}
+
+	if (thread->process->address_space == 0) {
+		return address_space_kernel();
+	}
+
+	return thread->process->address_space;
 }
 
 static void queue_push(
@@ -341,8 +355,6 @@ static thread_t *thread_create_internal(
 		irq_flags_t flags = irq_save();
 		ready_push(thread);
 		irq_restore(flags);
-	} else {
-		thread->state = THREAD_READY;
 	}
 
 	console_write("Thread: created ");
@@ -415,6 +427,33 @@ thread_t *thread_create(
 	void *arg
 ) {
 	return thread_create_internal(name, entry, arg, 1);
+}
+
+thread_t *thread_create_suspended(
+	const char *name,
+	thread_entry_t entry,
+	void *arg
+) {
+	return thread_create_internal(name, entry, arg, 0);
+}
+
+void thread_start(thread_t *thread) {
+	if (thread == 0) {
+		kernel_panic("thread_start received null thread");
+	}
+
+	irq_flags_t flags = irq_save();
+
+	validate_thread(thread);
+
+	if (thread->state != THREAD_NEW) {
+		irq_restore(flags);
+		kernel_panic("thread_start called on non-new thread");
+	}
+
+	ready_push(thread);
+
+	irq_restore(flags);
 }
 
 thread_t *thread_current(void) {
@@ -602,6 +641,8 @@ uintptr_t thread_schedule_from_interrupt(interrupt_frame_t *frame) {
 
 	next_thread->state = THREAD_RUNNING;
 	current_thread = next_thread;
+
+	address_space_switch(thread_address_space(next_thread));
 
 	uint32_t next_stack_top = thread_kernel_stack_top(next_thread);
 

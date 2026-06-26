@@ -3,6 +3,7 @@
 #define TOYIX_KERNEL_PROCESS_H
 
 #include <stdint.h>
+#include "kernel/address_space.h"
 
 struct thread;
 
@@ -18,6 +19,8 @@ typedef struct process {
 
     const char *name;
     process_state_t state;
+
+    address_space_t *address_space;
 
     struct thread *main_thread;
 
