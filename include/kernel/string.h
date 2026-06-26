@@ -13,5 +13,10 @@ size_t kstrlen(const char *text);
 int kstrcmp(const char *left, const char *right);
 int kstrncmp(const char *left, const char *right, size_t count);
 char *kstrcpy(char *dest, const char *src);
+size_t kstrlcpy(char *dest, const char *src, size_t dest_size);
+
+int kchar_is_space(char ch);
+int kchar_is_digit(char ch);
+int kchar_is_alpha(char ch);
 
 #endif

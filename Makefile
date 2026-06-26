@@ -120,19 +120,19 @@ test: iso
 	grep -q "Threads: preemption enabled, slice ticks=2" build/test.log
 	grep -q "Preempt test: timer-driven preemption sanity check passed" build/test.log
 	grep -q "Sleep test: blocking sleep sanity check passed" build/test.log
-	grep -q "Keyboard: IRQ1 handler and input buffer installed" build/test.log
+	grep -q "Keyboard: IRQ1 handler, modifiers, and input buffer installed" build/test.log
 	grep -q "Console: output mutex enabled" build/test.log
 	grep -q "Sync test: mutex/semaphore sanity check passed" build/test.log
 	grep -q "Console lock test: non-interleaved line output sanity check passed" build/test.log
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
-	grep -q "Monitor test: command dispatcher sanity check passed" build/test.log
+	grep -q "Monitor test: command table sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, terminal, and monitor smoke test passed."
+	@echo "Boot, memory, heap, sync, terminal, monitor, and keyboard modifier smoke test passed."
 
 test-exception:
 	$(MAKE) clean

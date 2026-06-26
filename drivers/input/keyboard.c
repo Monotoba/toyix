@@ -12,12 +12,19 @@
 #define KEYBOARD_DATA_PORT 0x60u
 #define KEYBOARD_RING_SIZE 128u
 
+#define SC_LSHIFT   0x2Au
+#define SC_RSHIFT   0x36u
+#define SC_CAPSLOCK 0x3Au
+
 static wait_queue_t keyboard_wait_queue;
 
 static char keyboard_ring[KEYBOARD_RING_SIZE];
 static uint32_t keyboard_head;
 static uint32_t keyboard_tail;
 static uint32_t keyboard_count;
+
+static int keyboard_shift_down;
+static int keyboard_caps_lock;
 
 static volatile uint32_t keyboard_test_done;
 static char keyboard_test_result[4];
@@ -80,9 +87,71 @@ static const char scancode_set1_ascii[128] = {
 	[0x39] = ' '
 };
 
+static const char scancode_set1_shifted_ascii[128] = {
+	[0x02] = '!',
+	[0x03] = '@',
+	[0x04] = '#',
+	[0x05] = '$',
+	[0x06] = '%',
+	[0x07] = '^',
+	[0x08] = '&',
+	[0x09] = '*',
+	[0x0A] = '(',
+	[0x0B] = ')',
+	[0x0C] = '_',
+	[0x0D] = '+',
+
+	[0x1A] = '{',
+	[0x1B] = '}',
+
+	[0x27] = ':',
+	[0x28] = '"',
+	[0x29] = '~',
+
+	[0x2B] = '|',
+	[0x33] = '<',
+	[0x34] = '>',
+	[0x35] = '?'
+};
+
 static int keyboard_has_data(void *context) {
 	(void)context;
 	return keyboard_count > 0;
+}
+
+static int ascii_is_lower(char ch) {
+	return ch >= 'a' && ch <= 'z';
+}
+
+static int ascii_is_upper(char ch) {
+	return ch >= 'A' && ch <= 'Z';
+}
+
+static char ascii_to_upper(char ch) {
+	if (ascii_is_lower(ch)) {
+		return (char)(ch - 'a' + 'A');
+	}
+
+	return ch;
+}
+
+static char keyboard_translate_scancode(uint8_t scancode) {
+	char base = scancode_set1_ascii[scancode];
+
+	if (base == 0) {
+		return 0;
+	}
+
+	if (ascii_is_lower(base) || ascii_is_upper(base)) {
+		int upper = keyboard_shift_down ^ keyboard_caps_lock;
+		return upper ? ascii_to_upper(base) : base;
+	}
+
+	if (keyboard_shift_down && scancode_set1_shifted_ascii[scancode] != 0) {
+		return scancode_set1_shifted_ascii[scancode];
+	}
+
+	return base;
 }
 
 static int keyboard_ring_push(char ch) {
@@ -119,21 +188,49 @@ static void keyboard_deliver_char(char ch) {
 	}
 }
 
+static void keyboard_handle_modifier(uint8_t scancode) {
+	int released = (scancode & 0x80u) != 0;
+	uint8_t code = scancode & 0x7Fu;
+
+	if (code == SC_LSHIFT || code == SC_RSHIFT) {
+		keyboard_shift_down = released ? 0 : 1;
+		return;
+	}
+
+	if (!released && code == SC_CAPSLOCK) {
+		keyboard_caps_lock = !keyboard_caps_lock;
+		return;
+	}
+}
+
+static int keyboard_is_modifier(uint8_t scancode) {
+	uint8_t code = scancode & 0x7Fu;
+
+	return code == SC_LSHIFT ||
+	       code == SC_RSHIFT ||
+	       code == SC_CAPSLOCK;
+}
+
 static void keyboard_irq_handler(interrupt_frame_t *frame) {
 	(void)frame;
 
 	uint8_t scancode = inb(KEYBOARD_DATA_PORT);
 
+	if (keyboard_is_modifier(scancode)) {
+		keyboard_handle_modifier(scancode);
+		return;
+	}
+
 	/*
-	 * In set 1, the high bit usually marks a key release.
-	 * For this first driver, we ignore release and only queue presses.
+	 * In Set 1 style scancodes, high bit marks key release.
+	 * This driver ignores non-modifier releases.
 	 */
 	if ((scancode & 0x80u) != 0) {
 		return;
 	}
 
 	if (scancode < 128) {
-		char ch = scancode_set1_ascii[scancode];
+		char ch = keyboard_translate_scancode(scancode);
 
 		if (ch != 0) {
 			keyboard_deliver_char(ch);
@@ -145,6 +242,8 @@ int keyboard_init(void) {
 	keyboard_head = 0;
 	keyboard_tail = 0;
 	keyboard_count = 0;
+	keyboard_shift_down = 0;
+	keyboard_caps_lock = 0;
 	keyboard_test_done = 0;
 	keyboard_test_result[0] = 0;
 	keyboard_test_result[1] = 0;
@@ -156,7 +255,7 @@ int keyboard_init(void) {
 	interrupt_register_handler(33, keyboard_irq_handler);
 	pic_clear_mask(1);
 
-	console_writeln("Keyboard: IRQ1 handler and input buffer installed");
+	console_writeln("Keyboard: IRQ1 handler, modifiers, and input buffer installed");
 	return 0;
 }
 

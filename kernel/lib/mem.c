@@ -158,6 +158,57 @@ char *kstrcpy(char *dest, const char *src) {
 }
 
 
+size_t kstrlcpy(char *dest, const char *src, size_t dest_size) {
+    size_t src_len = 0;
+
+    if (src != 0) {
+        while (src[src_len] != '\0') {
+            src_len++;
+        }
+    }
+
+    if (dest_size == 0 || dest == 0) {
+        return src_len;
+    }
+
+    if (src == 0) {
+        dest[0] = '\0';
+        return 0;
+    }
+
+    size_t copy_len = 0;
+
+    while (copy_len + 1 < dest_size && src[copy_len] != '\0') {
+        dest[copy_len] = src[copy_len];
+        copy_len++;
+    }
+
+    dest[copy_len] = '\0';
+
+    return src_len;
+}
+
+
+int kchar_is_space(char ch) {
+    return ch == ' ' ||
+           ch == '\t' ||
+           ch == '\n' ||
+           ch == '\r' ||
+           ch == '\v' ||
+           ch == '\f';
+}
+
+
+int kchar_is_digit(char ch) {
+    return ch >= '0' && ch <= '9';
+}
+
+
+int kchar_is_alpha(char ch) {
+    return (ch >= 'a' && ch <= 'z') ||
+           (ch >= 'A' && ch <= 'Z');
+}
+
 
 
 

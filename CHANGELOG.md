@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_15] - 2026-06-25
+
+- Refactor the kernel monitor around a command table with usage strings and per-command help.
+- Add `argc`/`argv` tokenization and bounded command-line copying.
+- Add Shift, Caps Lock, and shifted punctuation handling to keyboard input.
+- Add kernel string helpers for bounded copying, character classes, and command parsing.
+- Update Chapter 15, the README, the series index, and smoke suite expectations.
+
 ## [Chapter_14] - 2026-06-25
 
 - Add terminal readline support with echo, newline, fixed-size buffers, and backspace handling.

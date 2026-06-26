@@ -108,7 +108,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     console_writeln("Timer: observed 3 ticks");
 
     console_writeln("Interactive kernel monitor is running.");
-    console_writeln("Try: help, ticks, threads, mem, heap, echo hello");
+    console_writeln("Try: help, help sleep, ticks, threads, mem, heap, echo Hello!");
 
     kernel_idle();
 }
