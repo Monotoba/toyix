@@ -45,3 +45,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 18: File-Descriptor Syscalls and a Tiny User-Mode Console Program](articles/chapter_18.md)
 - [Chapter 19: Per-Process Address Spaces and CR3 Switching](articles/chapter_19.md)
 - [Chapter 20: A Tiny Executable Format and User Program Loader](articles/chapter_20.md)
+- [Chapter 21: Process Teardown and Address-Space Cleanup](articles/chapter_21.md)

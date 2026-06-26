@@ -51,6 +51,14 @@ static void validate_process(process_t *process) {
     }
 }
 
+static void validate_live_process(process_t *process) {
+    validate_process(process);
+
+    if (process->state == PROCESS_DESTROYED) {
+        kernel_panic("process: operation on destroyed process");
+    }
+}
+
 process_t *process_create_empty(const char *name) {
     process_t *process = (process_t *)kcalloc(1, sizeof(process_t));
 
@@ -299,6 +307,50 @@ void process_exit_current(uint32_t exit_code) {
     console_putc('\n');
 }
 
+uint32_t process_wait(process_t *process) {
+    validate_live_process(process);
+
+    if (process_current() == process) {
+        kernel_panic("process attempted to wait on itself");
+    }
+
+    while (!process->exited) {
+        thread_sleep_ticks(1);
+        thread_reap_zombies();
+    }
+
+    thread_reap_zombies();
+
+    return process->exit_code;
+}
+
+void process_destroy(process_t *process) {
+    validate_live_process(process);
+
+    if (!process->exited) {
+        kernel_panic("process_destroy called on running process");
+    }
+
+    uint32_t pid = process->pid;
+    const char *name = process->name;
+
+    if (process->address_space != 0) {
+        address_space_destroy(process->address_space);
+        process->address_space = 0;
+    }
+
+    process->main_thread = 0;
+    process->state = PROCESS_DESTROYED;
+    process->magic = 0;
+
+    kfree(process);
+
+    console_write("Process: destroyed pid=");
+    console_write_u32_dec(pid);
+    console_write(" name=");
+    console_writeln(name);
+}
+
 uint32_t process_last_exit_code(void) {
     return (uint32_t)last_exit_code;
 }
@@ -484,7 +536,7 @@ static uint32_t build_stdio_demo_toyexe(
 }
 
 void process_test_once(void) {
-    console_writeln("Process test: starting TOYEXE user program test");
+    console_writeln("Process test: starting TOYEXE lifecycle cleanup test");
 
     last_exit_seen = 0;
     last_exit_code = 0xFFFFFFFFu;
@@ -496,7 +548,7 @@ void process_test_once(void) {
         sizeof(toyexe_image)
     );
 
-    toyexe_create_process(
+    process_t *process = toyexe_create_process(
         "toyexe-demo",
         toyexe_image,
         toyexe_size
@@ -511,16 +563,17 @@ void process_test_once(void) {
     keyboard_debug_inject_char('x');
     keyboard_debug_inject_char('\n');
 
-    while (!last_exit_seen) {
-        thread_sleep_ticks(1);
-        thread_reap_zombies();
-    }
+    uint32_t exit_code = process_wait(process);
 
-    thread_reap_zombies();
-
-    if (last_exit_code != 9) {
+    if (exit_code != 9) {
         kernel_panic("TOYEXE process test received wrong exit code");
     }
 
-    console_writeln("Process test: TOYEXE load/read/write/sleep/exit sanity check passed");
+    process_destroy(process);
+
+    if (last_exit_code != 9 || !last_exit_seen) {
+        kernel_panic("TOYEXE process test missing exit diagnostics");
+    }
+
+    console_writeln("Process test: TOYEXE lifecycle cleanup sanity check passed");
 }

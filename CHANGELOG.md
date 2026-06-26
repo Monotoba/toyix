@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_21] - 2026-06-26
+
+- Add owned-user-page tracking to process address spaces.
+- Add `address_space_destroy()` to free user pages, user page tables, and process page directories.
+- Add `process_wait()` and `process_destroy()` for a complete process lifecycle.
+- Replace the Chapter 20 TOYEXE smoke path with a lifecycle cleanup test.
+- Update Chapter 21, the README, the series index, the roadmap, and smoke suite expectations.
+
 ## [Chapter_20] - 2026-06-26
 
 - Add a tiny TOYEXE executable format and loader for user programs.

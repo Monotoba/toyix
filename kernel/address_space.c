@@ -12,6 +12,7 @@
 #define ADDRESS_SPACE_MAGIC 0x41535043u
 
 #define PAGE_DIRECTORY_ENTRIES 1024u
+#define PAGE_TABLE_ENTRIES     1024u
 
 #define PAGE_TABLE_BOOTSTRAP_LIMIT 0x01000000u
 
@@ -103,11 +104,57 @@ static void sync_kernel_mappings(address_space_t *space) {
     }
 }
 
+static void mapping_add(
+    address_space_t *space,
+    uintptr_t virtual_addr,
+    uintptr_t physical_addr
+) {
+    address_mapping_t *mapping =
+        (address_mapping_t *)kmalloc(sizeof(address_mapping_t));
+
+    if (mapping == 0) {
+        kernel_panic("address_space: could not allocate mapping node");
+    }
+
+    mapping->virtual_addr = virtual_addr;
+    mapping->physical_addr = physical_addr;
+    mapping->next = space->user_mappings;
+
+    space->user_mappings = mapping;
+}
+
+static int mapping_remove(
+    address_space_t *space,
+    uintptr_t virtual_addr
+) {
+    address_mapping_t *prev = 0;
+    address_mapping_t *cur = space->user_mappings;
+
+    while (cur != 0) {
+        if (cur->virtual_addr == virtual_addr) {
+            if (prev != 0) {
+                prev->next = cur->next;
+            } else {
+                space->user_mappings = cur->next;
+            }
+
+            kfree(cur);
+            return 1;
+        }
+
+        prev = cur;
+        cur = cur->next;
+    }
+
+    return 0;
+}
+
 void address_space_init(void) {
     kernel_space.magic = ADDRESS_SPACE_MAGIC;
     kernel_space.page_directory = paging_get_kernel_directory();
     kernel_space.page_directory_physical =
         (uintptr_t)paging_get_kernel_directory();
+    kernel_space.user_mappings = 0;
     kernel_space.user_page_count = 0;
 
     current_space = &kernel_space;
@@ -144,6 +191,7 @@ address_space_t *address_space_create(void) {
     space->magic = ADDRESS_SPACE_MAGIC;
     space->page_directory = directory;
     space->page_directory_physical = directory_phys;
+    space->user_mappings = 0;
     space->user_page_count = 0;
 
     sync_kernel_mappings(space);
@@ -238,6 +286,7 @@ int address_space_map_page(
     table[tab] =
         (uint32_t)(physical_addr & X86_PAGE_FRAME_MASK) | pte_flags;
 
+    mapping_add(space, virtual_addr, physical_addr);
     space->user_page_count++;
 
     if (space == current_space) {
@@ -276,17 +325,101 @@ int address_space_unmap_page(
         return -1;
     }
 
+    uintptr_t physical = table[tab] & X86_PAGE_FRAME_MASK;
+
     table[tab] = 0;
+
+    mapping_remove(space, virtual_addr);
 
     if (space->user_page_count > 0) {
         space->user_page_count--;
     }
+
+    pmm_free_page(physical);
 
     if (space == current_space) {
         paging_invalidate_page(virtual_addr);
     }
 
     return 0;
+}
+
+static uint32_t free_user_page_tables(address_space_t *space) {
+    uint32_t freed_tables = 0;
+
+    uint32_t start_dir = directory_index(ADDRESS_SPACE_USER_BASE);
+    uint32_t end_dir = directory_index(ADDRESS_SPACE_USER_TOP - 1u);
+
+    for (uint32_t dir = start_dir; dir <= end_dir; ++dir) {
+        uint32_t pde = space->page_directory[dir];
+
+        if ((pde & X86_PAGE_PRESENT) == 0) {
+            continue;
+        }
+
+        uint32_t *table = table_from_pde(pde);
+        int table_empty = 1;
+
+        for (uint32_t i = 0; i < PAGE_TABLE_ENTRIES; ++i) {
+            if ((table[i] & X86_PAGE_PRESENT) != 0) {
+                table_empty = 0;
+                break;
+            }
+        }
+
+        if (!table_empty) {
+            kernel_panic("address_space_destroy found non-empty user table");
+        }
+
+        uintptr_t table_phys = pde & X86_PAGE_FRAME_MASK;
+        space->page_directory[dir] = 0;
+        pmm_free_page(table_phys);
+        freed_tables++;
+    }
+
+    return freed_tables;
+}
+
+void address_space_destroy(address_space_t *space) {
+    validate_space(space);
+
+    if (space == &kernel_space) {
+        kernel_panic("attempted to destroy kernel address space");
+    }
+
+    if (current_space == space) {
+        address_space_switch(&kernel_space);
+    }
+
+    uint32_t freed_pages = 0;
+
+    while (space->user_mappings != 0) {
+        uintptr_t virtual_addr = space->user_mappings->virtual_addr;
+
+        if (address_space_unmap_page(space, virtual_addr) != 0) {
+            kernel_panic("address_space_destroy failed to unmap user page");
+        }
+
+        freed_pages++;
+    }
+
+    uint32_t freed_tables = free_user_page_tables(space);
+    uintptr_t directory_phys = space->page_directory_physical;
+
+    space->magic = 0;
+    space->page_directory = 0;
+    space->page_directory_physical = 0;
+    space->user_mappings = 0;
+    space->user_page_count = 0;
+
+    pmm_free_page(directory_phys);
+    kfree(space);
+
+    console_write("Address space: destroyed process page directory, user pages=");
+    console_write_u32_dec(freed_pages);
+    console_write(" tables=");
+    console_write_u32_dec(freed_tables);
+    console_putc('\n');
 }
 
 uintptr_t address_space_get_physical(

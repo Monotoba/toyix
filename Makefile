@@ -138,20 +138,22 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "Process test: starting TOYEXE user program test" build/test.log
+	grep -q "Process test: starting TOYEXE lifecycle cleanup test" build/test.log
 	grep -q "Address space: created process page directory" build/test.log
 	grep -q "TOYEXE: loaded image bytes=256 bss=64" build/test.log
 	grep -q "Process: created pid=1 name=toyexe-demo" build/test.log
 	grep -q "user>" build/test.log
 	grep -q "echo: toyix" build/test.log
 	grep -q "Syscall: process toyexe-demo pid=1 exited code 9" build/test.log
-	grep -q "Process test: TOYEXE load/read/write/sleep/exit sanity check passed" build/test.log
+	grep -q "Address space: destroyed process page directory" build/test.log
+	grep -q "Process: destroyed pid=1 name=toyexe-demo" build/test.log
+	grep -q "Process test: TOYEXE lifecycle cleanup sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, address-space, and TOYEXE loader smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, TOYEXE, and process cleanup smoke test passed."
 
 test-exception:
 	$(MAKE) clean

@@ -1,10 +1,10 @@
 # Toyix Roadmap
 
-This roadmap tracks the direction of the Toyix series after Chapter 20. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
+This roadmap tracks the direction of the Toyix series after Chapter 21. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
 
-Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, and a tiny TOYEXE loader for user programs.
+Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, a tiny TOYEXE loader for user programs, and process teardown with user-page reclamation.
 
-The next goal is to add process teardown and user-page reclamation, then build enough process, file, and terminal infrastructure to support a small shell.
+The next goal is to add process waiting semantics and exit-status collection, then build enough process, file, and terminal infrastructure to support a small shell.
 
 ## Completed Chapters
 
@@ -30,14 +30,14 @@ The next goal is to add process teardown and user-page reclamation, then build e
 | 18 | File-descriptor syscalls and a tiny user-mode console program |
 | 19 | Per-process address spaces and `CR3` switching |
 | 20 | A tiny executable format and user program loader |
+| 21 | Process teardown and address-space cleanup |
 
 ## Near-Term Plan
 
-These chapters are the most likely next path because they build directly on Chapter 20.
+These chapters are the most likely next path because they build directly on Chapter 21.
 
 | Chapter | Planned Topic |
 | ------: | ------------- |
-| 21 | Process teardown and user page cleanup |
 | 22 | Waiting for process exit and collecting status |
 | 23 | Program image abstraction and embedded program registry |
 | 24 | User program entry metadata and separate code/data/BSS regions |
@@ -84,18 +84,17 @@ These areas are intentionally broader. They may split into many chapters as the 
 
 ## Current Direction
 
-The most important architectural gap after Chapter 20 is process lifecycle cleanup.
+The most important architectural gap after Chapter 21 is fuller process-state management.
 
-The current user process test still builds a tiny TOYEXE image inside the kernel. The next stage should reclaim process resources cleanly before moving on to a fuller executable story. That keeps the loader understandable while establishing the right abstractions:
+The current user process test can now reclaim process resources cleanly. The next stage should keep the lifecycle moving upward into kernel-visible process state and wait semantics before moving on to richer executable formats. That keeps the cleanup work useful while establishing the abstractions the loader and shell work will need:
 
 ```text
-program image
-entry point
-code region
-data region
-BSS region
-user stack
-process address space
+exit status
+wait collection
+process registry
+parent/child links
+program image metadata
+named user programs
 ```
 
-Once that exists, Toyix can move from synthetic process demos toward named user programs, a shell, and filesystem-backed execution.
+Once that exists, Toyix can move from single synthetic process demos toward named user programs, a shell, and filesystem-backed execution.

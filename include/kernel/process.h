@@ -10,7 +10,8 @@ struct thread;
 typedef enum process_state {
     PROCESS_NEW = 0,
     PROCESS_RUNNING,
-    PROCESS_EXITED
+    PROCESS_EXITED,
+    PROCESS_DESTROYED
 } process_state_t;
 
 typedef struct process {
@@ -69,6 +70,9 @@ void process_start_user(process_t *process);
 process_t *process_current(void);
 
 void process_exit_current(uint32_t exit_code);
+
+uint32_t process_wait(process_t *process);
+void process_destroy(process_t *process);
 
 uint32_t process_last_exit_code(void);
 int process_last_exit_seen(void);

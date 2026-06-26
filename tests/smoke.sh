@@ -6,4 +6,4 @@ make test
 make test-exception
 make test-page-fault
 
-echo "All Chapter 20 checks passed."
+echo "All Chapter 21 checks passed."
