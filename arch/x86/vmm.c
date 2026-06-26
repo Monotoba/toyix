@@ -196,6 +196,26 @@ uintptr_t vmm_get_physical(uintptr_t virtual_addr) {
 	return (uintptr_t)((pte & X86_PAGE_FRAME_MASK) + offset);
 }
 
+uint32_t vmm_get_flags(uintptr_t virtual_addr) {
+	uint32_t dir = directory_index(virtual_addr);
+	uint32_t tab = table_index(virtual_addr);
+
+	page_directory_entry_t pde = kernel_directory[dir];
+
+	if ((pde & X86_PAGE_PRESENT) == 0) {
+		return 0;
+	}
+
+	page_table_entry_t *table = table_from_pde(pde);
+	page_table_entry_t pte = table[tab];
+
+	if ((pte & X86_PAGE_PRESENT) == 0) {
+		return 0;
+	}
+
+	return pte & X86_PAGE_FLAGS_MASK;
+}
+
 void vmm_test_once(void) {
 	console_writeln("VMM test: starting");
 	

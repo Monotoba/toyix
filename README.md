@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
 [![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20memory%20%2B%20threads%20%2B%20sync%20%2B%20exceptions-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, and a first ring-3 user-mode syscall path, and verifies boot behavior through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, a first ring-3 user-mode syscall path, and a minimal process abstraction with checked user-memory copying, and verifies boot behavior through automated QEMU smoke tests.
 
 Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us).
 
@@ -48,7 +48,8 @@ Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us
 - Shift and Caps Lock handling for PS/2 keyboard input, including shifted punctuation
 - Table-driven interactive kernel monitor commands for help, ticks, thread state, PMM stats, heap stats, sleep, echo, and clear
 - Ring-3 user-mode entry with a TSS kernel stack, user-accessible pages, and basic `int 0x80` syscalls
-- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, preemption, blocking sleep, synchronization, blocking keyboard input, terminal readline, monitor commands, keyboard modifiers, user-mode syscalls, deliberate invalid-opcode exception handling, and deliberate page-fault handling
+- Minimal process objects for user programs, checked user-memory copying, `SYS_WRITE`, `SYS_SLEEP`, and process exit status tracking
+- QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, heap setup, cooperative threading, preemption, blocking sleep, synchronization, blocking keyboard input, terminal readline, monitor commands, keyboard modifiers, user-mode process syscalls, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
 ## Repository Layout
@@ -140,6 +141,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 14](articles/chapter_14.md)
 - [Chapter 15](articles/chapter_15.md)
 - [Chapter 16](articles/chapter_16.md)
+- [Chapter 17](articles/chapter_17.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

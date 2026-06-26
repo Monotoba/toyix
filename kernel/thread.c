@@ -329,6 +329,7 @@ static thread_t *thread_create_internal(
 
 	thread->entry = entry;
 	thread->arg = arg;
+	thread->process = 0;
 
 	thread->wake_tick = 0;
 	thread->next = 0;
@@ -389,6 +390,7 @@ void threading_init(void) {
 	bootstrap_thread.stack_size = 0;
 	bootstrap_thread.entry = 0;
 	bootstrap_thread.arg = 0;
+	bootstrap_thread.process = 0;
 	bootstrap_thread.wake_tick = 0;
 	bootstrap_thread.next = 0;
 	bootstrap_thread.prev = 0;
@@ -417,6 +419,16 @@ thread_t *thread_create(
 
 thread_t *thread_current(void) {
 	return current_thread;
+}
+
+void thread_set_process(thread_t *thread, struct process *process) {
+	validate_thread(thread);
+	thread->process = process;
+}
+
+struct process *thread_get_process(thread_t *thread) {
+	validate_thread(thread);
+	return thread->process;
 }
 
 void thread_yield(void) {

@@ -52,10 +52,12 @@ OBJS := \
     build/kernel/monitor.o \
     build/kernel/panic.o \
     build/kernel/pmm.o \
+    build/kernel/process.o \
     build/kernel/sync.o \
     build/kernel/syscall.o \
     build/kernel/terminal.o \
     build/kernel/thread.o \
+    build/kernel/usercopy.o \
     build/kernel/usermode.o \
     build/kernel/vmem.o \
     build/kernel/wait_queue.o \
@@ -119,6 +121,7 @@ test: iso
 	grep -q "Heap: initialized virtual heap with 4 page(s)" build/test.log
 	grep -q "Heap test: VMM-backed allocation/free sanity check passed" build/test.log
 	grep -q "Threads: blocking scheduler initialized" build/test.log
+	grep -q "Process: process table initialized" build/test.log
 	grep -q "Thread test: worker A step 0" build/test.log
 	grep -q "Thread test: worker B step 0" build/test.log
 	grep -q "Thread test: completed software-yield multitasking test" build/test.log
@@ -132,17 +135,17 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "User mode test: preparing ring 3 program" build/test.log
-	grep -q "User mode test: entering ring 3" build/test.log
-	grep -q "U3" build/test.log
-	grep -q "Syscall: user thread requested exit code 0" build/test.log
-	grep -q "User mode test: ring 3 syscall/exit sanity check passed" build/test.log
+	grep -q "Process test: starting user process syscall test" build/test.log
+	grep -q "Process: created pid=1 name=user-demo" build/test.log
+	grep -q "User process says hello through SYS_WRITE" build/test.log
+	grep -q "Syscall: process user-demo pid=1 exited code 7" build/test.log
+	grep -q "Process test: user process syscall/write/sleep/exit sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, and user-mode syscall smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, process, and user syscall smoke test passed."
 
 test-exception:
 	$(MAKE) clean

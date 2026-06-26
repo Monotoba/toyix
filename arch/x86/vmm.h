@@ -25,9 +25,9 @@ int vmm_unmap_page(uintptr_t virtual_addr);
 
 
 uintptr_t vmm_get_physical(uintptr_t virtual_addr);
+uint32_t vmm_get_flags(uintptr_t virtual_addr);
 
 
 void vmm_test_once(void);
 
 #endif
-

@@ -18,6 +18,20 @@ static uint32_t vmem_to_arch_flags(uint32_t flags) {
 	return arch_flags;
 }
 
+static uint32_t vmem_from_arch_flags(uint32_t arch_flags) {
+	uint32_t flags = 0;
+
+	if ((arch_flags & X86_PAGE_WRITABLE) != 0) {
+		flags |= VMEM_FLAG_WRITABLE;
+	}
+
+	if ((arch_flags & X86_PAGE_USER) != 0) {
+		flags |= VMEM_FLAG_USER;
+	}
+
+	return flags;
+}
+
 static int vmem_from_arch_result(int result) {
 	switch (result) {
 	case VMM_OK:
@@ -59,6 +73,14 @@ int vmem_unmap_page(uintptr_t virtual_addr) {
 
 uintptr_t vmem_get_physical(uintptr_t virtual_addr) {
 	return vmm_get_physical(virtual_addr);
+}
+
+uint32_t vmem_get_flags(uintptr_t virtual_addr) {
+	return vmem_from_arch_flags(vmm_get_flags(virtual_addr));
+}
+
+int vmem_is_user_accessible(uintptr_t virtual_addr) {
+	return (vmem_get_flags(virtual_addr) & VMEM_FLAG_USER) != 0;
 }
 
 void vmem_test_once(void) {

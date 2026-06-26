@@ -9,6 +9,8 @@
 
 typedef void (*thread_entry_t)(void *arg);
 
+struct process;
+
 typedef enum thread_state {
 	THREAD_NEW = 0,
 	THREAD_READY,
@@ -37,6 +39,8 @@ typedef struct thread {
     thread_entry_t entry;
     void *arg;
 
+    struct process *process;
+
     uint32_t wake_tick;
 
     struct thread *next;
@@ -52,6 +56,8 @@ thread_t *thread_create(
 );
 
 thread_t *thread_current(void);
+void thread_set_process(thread_t *thread, struct process *process);
+struct process *thread_get_process(thread_t *thread);
 
 void thread_yield(void);
 void thread_exit(void) __attribute__((noreturn));

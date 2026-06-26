@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_17] - 2026-06-26
+
+- Add a minimal `process_t` abstraction and attach user threads to processes.
+- Add checked user-memory copying helpers and user-page flag queries.
+- Add `SYS_WRITE` and `SYS_SLEEP` alongside process-aware `SYS_EXIT`.
+- Replace the raw user-mode boot test with a process syscall/write/sleep/exit smoke test.
+- Update Chapter 17, the README, the series index, and smoke suite expectations.
+
 ## [Chapter_16] - 2026-06-26
 
 - Add user and TSS GDT entries plus TSS kernel-stack refresh during scheduling.

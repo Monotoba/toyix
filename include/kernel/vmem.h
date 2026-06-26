@@ -28,9 +28,10 @@ int vmem_unmap_page(uintptr_t virtual_addr);
 
 
 uintptr_t vmem_get_physical(uintptr_t virtual_addr);
+uint32_t vmem_get_flags(uintptr_t virtual_addr);
+int vmem_is_user_accessible(uintptr_t virtual_addr);
 
 void vmem_test_once(void);
 
 
 #endif
-
