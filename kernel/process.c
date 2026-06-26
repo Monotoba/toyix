@@ -5,7 +5,6 @@
 #include "drivers/input/keyboard.h"
 #include "kernel/address_space.h"
 #include "kernel/console.h"
-#include "kernel/elf32.h"
 #include "kernel/elf_loader.h"
 #include "kernel/heap.h"
 #include "kernel/panic.h"
@@ -17,17 +16,6 @@
 #include "kernel/usermode.h"
 
 #define PROCESS_MAGIC 0x50524F43u
-
-#define DEMO_SEGMENT_VA 0x40100000u
-#define DEMO_IMAGE_SIZE 256u
-#define DEMO_BSS_SIZE   64u
-
-#define DEMO_PROMPT_VA  (DEMO_SEGMENT_VA + 0xA0u)
-#define DEMO_PREFIX_VA  (DEMO_SEGMENT_VA + 0xA8u)
-#define DEMO_NEWLINE_VA (DEMO_SEGMENT_VA + 0xB0u)
-#define DEMO_INPUT_VA   (DEMO_SEGMENT_VA + DEMO_IMAGE_SIZE)
-
-#define DEMO_INPUT_MAX 32u
 
 static uint32_t next_pid;
 static volatile uint32_t last_exit_code;
@@ -373,215 +361,25 @@ static void user_process_thread_entry(void *arg) {
     kernel_panic("user process returned from user mode");
 }
 
-static void emit_u8(uint8_t *program, uint32_t *offset, uint8_t value) {
-    program[*offset] = value;
-    (*offset)++;
-}
-
-static void emit_u32(uint8_t *program, uint32_t *offset, uint32_t value) {
-    program[*offset + 0u] = (uint8_t)(value & 0xFFu);
-    program[*offset + 1u] = (uint8_t)((value >> 8) & 0xFFu);
-    program[*offset + 2u] = (uint8_t)((value >> 16) & 0xFFu);
-    program[*offset + 3u] = (uint8_t)((value >> 24) & 0xFFu);
-    *offset += 4u;
-}
-
-static void emit_mov_eax_imm32(
-    uint8_t *program,
-    uint32_t *offset,
-    uint32_t value
-) {
-    emit_u8(program, offset, 0xB8u);
-    emit_u32(program, offset, value);
-}
-
-static void emit_mov_ebx_imm32(
-    uint8_t *program,
-    uint32_t *offset,
-    uint32_t value
-) {
-    emit_u8(program, offset, 0xBBu);
-    emit_u32(program, offset, value);
-}
-
-static void emit_mov_ecx_imm32(
-    uint8_t *program,
-    uint32_t *offset,
-    uint32_t value
-) {
-    emit_u8(program, offset, 0xB9u);
-    emit_u32(program, offset, value);
-}
-
-static void emit_mov_edx_imm32(
-    uint8_t *program,
-    uint32_t *offset,
-    uint32_t value
-) {
-    emit_u8(program, offset, 0xBAu);
-    emit_u32(program, offset, value);
-}
-
-static void emit_int80(uint8_t *program, uint32_t *offset) {
-    emit_u8(program, offset, 0xCDu);
-    emit_u8(program, offset, 0x80u);
-}
-
-static void build_stdio_demo_payload(uint8_t *program, uint32_t program_size) {
-    memset(program, 0x90, program_size);
-
-    uint32_t offset = 0;
-
-    emit_mov_eax_imm32(program, &offset, SYS_WRITE);
-    emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
-    emit_mov_ecx_imm32(program, &offset, DEMO_PROMPT_VA);
-    emit_mov_edx_imm32(program, &offset, 6);
-    emit_int80(program, &offset);
-
-    emit_mov_eax_imm32(program, &offset, SYS_READ);
-    emit_mov_ebx_imm32(program, &offset, FD_STDIN);
-    emit_mov_ecx_imm32(program, &offset, DEMO_INPUT_VA);
-    emit_mov_edx_imm32(program, &offset, DEMO_INPUT_MAX);
-    emit_int80(program, &offset);
-
-    emit_u8(program, &offset, 0x89u);
-    emit_u8(program, &offset, 0xC6u);
-
-    emit_mov_eax_imm32(program, &offset, SYS_WRITE);
-    emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
-    emit_mov_ecx_imm32(program, &offset, DEMO_PREFIX_VA);
-    emit_mov_edx_imm32(program, &offset, 6);
-    emit_int80(program, &offset);
-
-    emit_mov_eax_imm32(program, &offset, SYS_WRITE);
-    emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
-    emit_mov_ecx_imm32(program, &offset, DEMO_INPUT_VA);
-
-    emit_u8(program, &offset, 0x89u);
-    emit_u8(program, &offset, 0xF2u);
-
-    emit_int80(program, &offset);
-
-    emit_mov_eax_imm32(program, &offset, SYS_WRITE);
-    emit_mov_ebx_imm32(program, &offset, FD_STDOUT);
-    emit_mov_ecx_imm32(program, &offset, DEMO_NEWLINE_VA);
-    emit_mov_edx_imm32(program, &offset, 1);
-    emit_int80(program, &offset);
-
-    emit_mov_eax_imm32(program, &offset, SYS_SLEEP);
-    emit_mov_ebx_imm32(program, &offset, 3);
-    emit_int80(program, &offset);
-
-    emit_mov_eax_imm32(program, &offset, SYS_EXIT);
-    emit_mov_ebx_imm32(program, &offset, 9);
-    emit_int80(program, &offset);
-
-    emit_u8(program, &offset, 0xEBu);
-    emit_u8(program, &offset, 0xFEu);
-
-    if (offset >= 0xA0u) {
-        kernel_panic("ELF demo program overlapped data area");
-    }
-
-    const char prompt[] = "user> ";
-    const char prefix[] = "echo: ";
-    const char newline[] = "\n";
-
-    memcpy(
-        &program[DEMO_PROMPT_VA - DEMO_SEGMENT_VA],
-        prompt,
-        sizeof(prompt) - 1u
-    );
-
-    memcpy(
-        &program[DEMO_PREFIX_VA - DEMO_SEGMENT_VA],
-        prefix,
-        sizeof(prefix) - 1u
-    );
-
-    memcpy(
-        &program[DEMO_NEWLINE_VA - DEMO_SEGMENT_VA],
-        newline,
-        1u
-    );
-}
-
-static uint32_t build_stdio_demo_elf(
-    uint8_t *image,
-    uint32_t image_capacity
-) {
-    uint32_t payload_offset =
-        sizeof(elf32_ehdr_t) + sizeof(elf32_phdr_t);
-    uint32_t total_size = payload_offset + DEMO_IMAGE_SIZE;
-
-    if (image_capacity < total_size) {
-        kernel_panic("ELF demo image buffer too small");
-    }
-
-    memset(image, 0, image_capacity);
-
-    elf32_ehdr_t *ehdr = (elf32_ehdr_t *)image;
-    elf32_phdr_t *phdr =
-        (elf32_phdr_t *)(image + sizeof(elf32_ehdr_t));
-
-    ehdr->e_ident[EI_MAG0] = ELFMAG0;
-    ehdr->e_ident[EI_MAG1] = ELFMAG1;
-    ehdr->e_ident[EI_MAG2] = ELFMAG2;
-    ehdr->e_ident[EI_MAG3] = ELFMAG3;
-    ehdr->e_ident[EI_CLASS] = ELFCLASS32;
-    ehdr->e_ident[EI_DATA] = ELFDATA2LSB;
-    ehdr->e_ident[EI_VERSION] = EV_CURRENT;
-
-    ehdr->e_type = ET_EXEC;
-    ehdr->e_machine = EM_386;
-    ehdr->e_version = EV_CURRENT;
-    ehdr->e_entry = DEMO_SEGMENT_VA;
-    ehdr->e_phoff = sizeof(elf32_ehdr_t);
-    ehdr->e_shoff = 0;
-    ehdr->e_flags = 0;
-    ehdr->e_ehsize = sizeof(elf32_ehdr_t);
-    ehdr->e_phentsize = sizeof(elf32_phdr_t);
-    ehdr->e_phnum = 1;
-    ehdr->e_shentsize = 0;
-    ehdr->e_shnum = 0;
-    ehdr->e_shstrndx = 0;
-
-    phdr->p_type = PT_LOAD;
-    phdr->p_offset = payload_offset;
-    phdr->p_vaddr = DEMO_SEGMENT_VA;
-    phdr->p_paddr = DEMO_SEGMENT_VA;
-    phdr->p_filesz = DEMO_IMAGE_SIZE;
-    phdr->p_memsz = DEMO_IMAGE_SIZE + DEMO_BSS_SIZE;
-    phdr->p_flags = PF_R | PF_W | PF_X;
-    phdr->p_align = PMM_PAGE_SIZE;
-
-    build_stdio_demo_payload(
-        image + payload_offset,
-        DEMO_IMAGE_SIZE
-    );
-
-    return total_size;
-}
+extern const uint8_t user_demo_elf_start[];
+extern const uint8_t user_demo_elf_end[];
 
 void process_test_once(void) {
-    console_writeln("Process test: starting ELF32 user program test");
+    console_writeln("Process test: starting compiled ELF32 user program test");
 
     last_exit_seen = 0;
     last_exit_code = 0xFFFFFFFFu;
 
-    static uint8_t elf_image[
-        sizeof(elf32_ehdr_t) +
-        sizeof(elf32_phdr_t) +
-        DEMO_IMAGE_SIZE
-    ];
+    const uint8_t *elf_image = user_demo_elf_start;
+    uint32_t elf_size =
+        (uint32_t)(user_demo_elf_end - user_demo_elf_start);
 
-    uint32_t elf_size = build_stdio_demo_elf(
-        elf_image,
-        sizeof(elf_image)
-    );
+    if (elf_size == 0) {
+        kernel_panic("compiled user ELF image is empty");
+    }
 
     process_t *process = elf_create_process(
-        "elf-demo",
+        "compiled-demo",
         elf_image,
         elf_size
     );
@@ -598,14 +396,14 @@ void process_test_once(void) {
     uint32_t exit_code = process_wait(process);
 
     if (exit_code != 9) {
-        kernel_panic("ELF process test received wrong exit code");
+        kernel_panic("compiled ELF process test received wrong exit code");
     }
 
     process_destroy(process);
 
     if (last_exit_code != 9 || !last_exit_seen) {
-        kernel_panic("ELF process test missing exit diagnostics");
+        kernel_panic("compiled ELF process test missing exit diagnostics");
     }
 
-    console_writeln("Process test: ELF32 load/read/write/sleep/exit cleanup sanity check passed");
+    console_writeln("Process test: compiled ELF32 user program cleanup sanity check passed");
 }

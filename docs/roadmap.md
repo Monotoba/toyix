@@ -1,10 +1,10 @@
 # Toyix Roadmap
 
-This roadmap tracks the direction of the Toyix series after Chapter 22. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
+This roadmap tracks the direction of the Toyix series after Chapter 23. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
 
-Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, process teardown with user-page reclamation, and an initial ELF32 loader for user programs.
+Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, process teardown with user-page reclamation, an initial ELF32 loader for user programs, and a compiled user C demo that is embedded into the kernel image.
 
-The next goal is to replace the in-kernel machine-code emitter with a tiny user-program build pipeline, then build enough process, file, and terminal infrastructure to support a small shell.
+The next goal is to make user startup look more like a real process environment, then build enough process, file, and terminal infrastructure to support a small shell.
 
 ## Completed Chapters
 
@@ -32,21 +32,21 @@ The next goal is to replace the in-kernel machine-code emitter with a tiny user-
 | 20 | A tiny executable format and user program loader |
 | 21 | Process teardown and address-space cleanup |
 | 22 | First ELF32 loader milestone |
+| 23 | Building a real user C program and embedding its ELF |
 
 ## Near-Term Plan
 
-These chapters are the most likely next path because they build directly on Chapter 22.
+These chapters are the most likely next path because they build directly on Chapter 23.
 
 | Chapter | Planned Topic |
 | ------: | ------------- |
-| 23 | Tiny user-program build pipeline and ELF embedding |
-| 24 | User syscall headers, startup code, and C demo program |
+| 24 | User stack setup, `argc`, and `argv` startup handoff |
 | 25 | Program image abstraction and embedded program registry |
 | 26 | User program entry metadata and separate code/data/BSS regions |
-| 27 | User stack setup improvements and argument passing groundwork |
-| 28 | Process table lookup, process listing, and `ps`-style monitor output |
-| 29 | Parent/child process relationships and exit status storage |
-| 30 | `wait`/`waitpid`-style syscall support |
+| 27 | Process table lookup, process listing, and `ps`-style monitor output |
+| 28 | Parent/child process relationships and exit status storage |
+| 29 | `wait`/`waitpid`-style syscall support |
+| 30 | Safer user fault handling that kills a process instead of panicking |
 
 ## Medium-Term Plan
 
@@ -84,17 +84,17 @@ These areas are intentionally broader. They may split into many chapters as the 
 
 ## Current Direction
 
-The most important architectural gap after Chapter 22 is the lack of a real user-program build path.
+The most important architectural gap after Chapter 23 is the lack of a real process startup ABI.
 
-The kernel now understands a real ELF32 executable shape, but the demo payload is still emitted by C code inside the kernel. The next stage should move the series onto compiled user programs while keeping the current ELF loader in place. That gives later shell and process work a more realistic foundation:
+The kernel now loads a real compiled user ELF, but the startup contract is still minimal: no `argc`, no `argv`, and no initial user stack layout beyond a blank mapped stack. The next stage should make startup look more like a real process environment while keeping the current loader path stable:
 
 ```text
-user include files
-startup assembly
-user linker script
-compiled ELF demo
-embedded program bytes
-loader-fed user C code
+argc
+argv
+user stack layout
+crt0 argument handoff
+kernel-supplied process arguments
+shell-ready user entry
 ```
 
-Once that exists, Toyix can move from synthetic in-kernel payloads toward named user programs, richer process management, a shell, and filesystem-backed execution.
+Once that exists, Toyix can move from a single embedded demo toward richer user programs, process management, a shell, and filesystem-backed execution.

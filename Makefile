@@ -8,6 +8,7 @@ AS          := nasm
 GRUB_FILE   := grub-file
 GRUB_MKRESCUE := grub-mkrescue
 QEMU        := qemu-system-i386
+OBJCOPY     ?= $(TARGET)-objcopy
 
 CFLAGS := -std=gnu11 \
           -ffreestanding \
@@ -28,6 +29,30 @@ LDFLAGS := -T linker.ld \
            -O2 \
            -nostdlib \
            -lgcc
+
+USER_CFLAGS := \
+          -std=gnu11 \
+          -ffreestanding \
+          -fno-builtin \
+          -fno-stack-protector \
+          -fno-pic \
+          -fno-pie \
+          -fno-asynchronous-unwind-tables \
+          -fno-unwind-tables \
+          -m32 \
+          -march=i686 \
+          -O2 \
+          -Wall \
+          -Wextra \
+          -Iuser/include
+
+USER_LDFLAGS := \
+           -nostdlib \
+           -ffreestanding \
+           -m32 \
+           -Wl,-T,user/linker.ld \
+           -Wl,--build-id=none \
+           -Wl,-Map,build/user/demo.map
 
 OBJS := \
     build/arch/x86/boot.o \
@@ -66,7 +91,8 @@ OBJS := \
     build/kernel/lib/mem.o \
     build/drivers/console/serial.o \
     build/drivers/console/vga_text.o \
-    build/drivers/input/keyboard.o
+    build/drivers/input/keyboard.o \
+    build/user/demo_elf_blob.o
 
 .PHONY: all clean iso run test test-exception test-page-fault FORCE
 
@@ -82,6 +108,9 @@ build/arch/x86/paging.o: arch/x86/paging.c build/.cflags
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+build/user:
+	@mkdir -p build/user
+
 build/%.o: %.asm
 	@mkdir -p $(dir $@)
 	$(AS) -f elf32 $< -o $@
@@ -89,6 +118,25 @@ build/%.o: %.asm
 build/%.o: %.c build/.cflags
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+build/user/crt0.o: user/crt0.S | build/user
+	$(CC) $(USER_CFLAGS) -c $< -o $@
+
+build/user/demo.o: user/demo.c user/include/toyix_syscall.h | build/user
+	$(CC) $(USER_CFLAGS) -c $< -o $@
+
+build/user/demo.elf: build/user/crt0.o build/user/demo.o user/linker.ld | build/user
+	$(CC) $(USER_LDFLAGS) build/user/crt0.o build/user/demo.o -o $@
+
+build/user/demo_elf_blob.o: build/user/demo.elf | build/user
+	$(OBJCOPY) \
+		-I binary \
+		-O elf32-i386 \
+		-B i386 \
+		--rename-section .data=.rodata.userdemo,alloc,load,readonly,data,contents \
+		--redefine-sym _binary_build_user_demo_elf_start=user_demo_elf_start \
+		--redefine-sym _binary_build_user_demo_elf_end=user_demo_elf_end \
+		$< $@
 
 build/kernel.elf: $(OBJS) linker.ld
 	$(CC) $(LDFLAGS) $(OBJS) -o $@
@@ -138,22 +186,22 @@ test: iso
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "Process test: starting ELF32 user program test" build/test.log
+	grep -q "Process test: starting compiled ELF32 user program test" build/test.log
 	grep -q "Address space: created process page directory" build/test.log
-	grep -q "ELF32: loaded PT_LOAD vaddr=0x40100000 filesz=256 memsz=320" build/test.log
+	grep -q "ELF32: loaded PT_LOAD vaddr=0x40100000" build/test.log
 	grep -q "ELF32: entry=0x40100000" build/test.log
-	grep -q "Process: created pid=1 name=elf-demo" build/test.log
+	grep -q "Process: created pid=1 name=compiled-demo" build/test.log
 	grep -q "echo: toyix" build/test.log
-	grep -q "Syscall: process elf-demo pid=1 exited code 9" build/test.log
+	grep -q "Syscall: process compiled-demo pid=1 exited code 9" build/test.log
 	grep -q "Address space: destroyed process page directory" build/test.log
-	grep -q "Process: destroyed pid=1 name=elf-demo" build/test.log
-	grep -q "Process test: ELF32 load/read/write/sleep/exit cleanup sanity check passed" build/test.log
+	grep -q "Process: destroyed pid=1 name=compiled-demo" build/test.log
+	grep -q "Process test: compiled ELF32 user program cleanup sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, address-space, and ELF32 loader smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, address-space, and compiled user ELF smoke test passed."
 
 test-exception:
 	$(MAKE) clean

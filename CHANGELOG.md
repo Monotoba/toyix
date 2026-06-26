@@ -4,6 +4,14 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_23] - 2026-06-26
+
+- Add a `user/` build pipeline with syscall headers, startup assembly, a C demo program, and a user linker script.
+- Build a real user ELF with `i686-elf-gcc` and embed it into the kernel with `objcopy`.
+- Replace the last in-kernel ELF byte emitter with linker symbols for the compiled demo image.
+- Update process smoke expectations for the compiled `compiled-demo` user program path.
+- Update Chapter 23, the README, the series index, the roadmap, and smoke suite expectations.
+
 ## [Chapter_22] - 2026-06-26
 
 - Add freestanding ELF32 header definitions and an initial ELF32 process loader.
