@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_33] - 2026-06-27
+
+- Add `kill_requested` process state, cooperative child-kill helpers, and `PROCESS_KILLED_EXIT_CODE` for parent-owned process termination.
+- Add `SYS_GETPID`, `SYS_GETPPID`, `SYS_PROCINFO`, and `SYS_KILL` to the kernel and user syscall ABI.
+- Extend the shell with `runbg`, `jobs`, `wait`, and `kill` so background child processes can be inspected, terminated, and reaped from user mode.
+- Update the Chapter 33 boot smoke flow, README, series index, and roadmap for the first cooperative user-process termination milestone.
+
 ## [Chapter_32] - 2026-06-27
 
 - Add per-process parent PID tracking and helper APIs for parent ownership checks.

@@ -2,7 +2,7 @@
 
 This roadmap tracks the direction of the Toyix series from the current published chapters through the planned text-based OS milestones ahead.
 
-Toyix already has the early kernel foundation in place: paging, a heap, kernel threads, preemption, blocking primitives, terminal input, a kernel monitor, user-mode entry, fd-style syscalls, minimal processes, per-process address spaces, ELF loading, embedded compiled user programs, `argc`/`argv` startup, a program registry, process-table monitor commands, a shared userland runtime, and a first interactive user-mode shell.
+Toyix already has the early kernel foundation in place: paging, a heap, kernel threads, preemption, blocking primitives, terminal input, a kernel monitor, user-mode entry, fd-style syscalls, minimal processes, per-process address spaces, ELF loading, embedded compiled user programs, `argc`/`argv` startup, a program registry, process-table monitor commands, a shared userland runtime, a first interactive user-mode shell, parent-owned zombie child tracking, shell-visible background jobs, and cooperative child termination.
 
 The remaining work is no longer best described as a loose set of future themes. The planned chapters define a clearer path from the current embedded-program system to a text-based operating system that can later host a GUI and applications.
 
@@ -42,10 +42,11 @@ The remaining work is no longer best described as a loose set of future themes. 
 | 30 | First user-mode shell |
 | 31 | `SYS_EXEC`, `SYS_WAITPID`, and shell-launched programs |
 | 32 | Process ownership, waiting, and job state |
+| 33 | Process termination and kill checks |
 
 ## Planned Chapter Path
 
-The roadmap now runs from Chapter 33 through Chapter 111.
+The roadmap now runs from Chapter 34 through Chapter 111.
 
 ### 1. User Shell and Process Control
 
@@ -53,7 +54,6 @@ These chapters turn the current embedded-user-program path into a real shell and
 
 | Chapter | Topic |
 | ------: | ----- |
-| 33 | Process Termination and Kill Checks |
 
 ### 2. File APIs and Program Lookup
 

@@ -1,5 +1,6 @@
 // kernel/syscall.c
 #include <stdint.h>
+#include "arch/x86/irq_state.h"
 #include "kernel/console.h"
 #include "kernel/process.h"
 #include "kernel/program.h"
@@ -214,6 +215,109 @@ static void syscall_waitpid(interrupt_frame_t *frame) {
     frame->eax = 0;
 }
 
+static void syscall_getpid(interrupt_frame_t *frame) {
+    process_t *current = process_current();
+
+    if (current == 0) {
+        frame->eax = 0;
+        return;
+    }
+
+    frame->eax = current->pid;
+}
+
+static void syscall_getppid(interrupt_frame_t *frame) {
+    process_t *current = process_current();
+
+    if (current == 0) {
+        frame->eax = 0;
+        return;
+    }
+
+    frame->eax = process_parent_pid(current);
+}
+
+static void syscall_procinfo(interrupt_frame_t *frame) {
+    uint32_t pid = frame->ebx;
+    uintptr_t user_info = (uintptr_t)frame->ecx;
+    process_t *current = process_current();
+    process_t *process = 0;
+    syscall_procinfo_t info;
+
+    if (current == 0 || user_info == 0 || pid == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    process = process_find(pid);
+    if (process == 0 || process == current) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (!process_is_child_of(process, current->pid)) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    irq_flags_t flags = irq_save();
+    info.pid = process->pid;
+    info.parent_pid = process->parent_pid;
+    info.state = (uint32_t)process->state;
+    info.exit_code = process->exit_code;
+    info.exited = (uint32_t)(process->exited != 0);
+    info.kill_requested = (uint32_t)(process->kill_requested != 0);
+    irq_restore(flags);
+
+    if (copy_to_user(user_info, &info, sizeof(info)) != USERCOPY_OK) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    frame->eax = 0;
+}
+
+static void syscall_kill(interrupt_frame_t *frame) {
+    uint32_t target_pid = frame->ebx;
+    process_t *current = process_current();
+
+    if (current == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (target_pid == 0 || target_pid == current->pid) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (process_request_kill_child(current->pid, target_pid) != 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    frame->eax = 0;
+}
+
+static int syscall_finish_or_kill(interrupt_frame_t *frame) {
+    (void)frame;
+
+    process_t *current = process_current();
+
+    if (current == 0) {
+        return 0;
+    }
+
+    if (!process_kill_requested(current)) {
+        return 0;
+    }
+
+    process_exit_current(PROCESS_KILLED_EXIT_CODE);
+    thread_exit();
+
+    return 1;
+}
+
 void syscall_handler(interrupt_frame_t *frame) {
     if (frame == 0) {
         return;
@@ -221,20 +325,31 @@ void syscall_handler(interrupt_frame_t *frame) {
 
     uint32_t number = frame->eax;
 
+    if (number != SYS_EXIT &&
+        number != SYS_WAITPID &&
+        number != SYS_KILL) {
+        if (syscall_finish_or_kill(frame)) {
+            return;
+        }
+    }
+
     switch (number) {
         case SYS_PUTC: {
             char ch = (char)(frame->ebx & 0xFFu);
             console_putc(ch);
             frame->eax = 0;
+            syscall_finish_or_kill(frame);
             return;
         }
 
         case SYS_READ:
             syscall_read(frame);
+            syscall_finish_or_kill(frame);
             return;
 
         case SYS_WRITE:
             syscall_write(frame);
+            syscall_finish_or_kill(frame);
             return;
 
         case SYS_SLEEP: {
@@ -242,15 +357,36 @@ void syscall_handler(interrupt_frame_t *frame) {
             interrupts_enable();
             thread_sleep_ticks(ticks);
             frame->eax = 0;
+            syscall_finish_or_kill(frame);
             return;
         }
 
         case SYS_EXEC:
             syscall_exec(frame);
+            syscall_finish_or_kill(frame);
             return;
 
         case SYS_WAITPID:
             syscall_waitpid(frame);
+            return;
+
+        case SYS_GETPID:
+            syscall_getpid(frame);
+            syscall_finish_or_kill(frame);
+            return;
+
+        case SYS_GETPPID:
+            syscall_getppid(frame);
+            syscall_finish_or_kill(frame);
+            return;
+
+        case SYS_PROCINFO:
+            syscall_procinfo(frame);
+            syscall_finish_or_kill(frame);
+            return;
+
+        case SYS_KILL:
+            syscall_kill(frame);
             return;
 
         case SYS_EXIT: {

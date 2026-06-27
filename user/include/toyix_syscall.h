@@ -15,6 +15,24 @@ typedef int toyix_i32;
 #define SYS_READ  5u
 #define SYS_EXEC  6u
 #define SYS_WAITPID 7u
+#define SYS_GETPID   8u
+#define SYS_GETPPID  9u
+#define SYS_PROCINFO 10u
+#define SYS_KILL     11u
+
+#define TOYIX_PROCESS_NEW       0u
+#define TOYIX_PROCESS_RUNNING   1u
+#define TOYIX_PROCESS_ZOMBIE    2u
+#define TOYIX_PROCESS_DESTROYED 3u
+
+typedef struct toyix_procinfo {
+    toyix_u32 pid;
+    toyix_u32 parent_pid;
+    toyix_u32 state;
+    toyix_u32 exit_code;
+    toyix_u32 exited;
+    toyix_u32 kill_requested;
+} toyix_procinfo_t;
 
 static inline toyix_i32 toyix_read(
     toyix_u32 fd,
@@ -102,6 +120,64 @@ static inline toyix_i32 toyix_waitpid(
         : "a"(SYS_WAITPID),
           "b"(pid),
           "c"(status)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_getpid(void) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_GETPID)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_getppid(void) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_GETPPID)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_procinfo(
+    toyix_u32 pid,
+    toyix_procinfo_t *info
+) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_PROCINFO),
+          "b"(pid),
+          "c"(info)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_kill(toyix_u32 pid) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_KILL),
+          "b"(pid)
         : "memory"
     );
 

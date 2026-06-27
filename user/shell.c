@@ -2,6 +2,16 @@
 
 #define SHELL_LINE_MAX 96
 #define SHELL_ARG_MAX  12
+#define SHELL_JOB_MAX  8
+#define SHELL_JOB_NAME_MAX 32
+
+typedef struct shell_job {
+    toyix_u32 pid;
+    int active;
+    char name[SHELL_JOB_NAME_MAX];
+} shell_job_t;
+
+static shell_job_t shell_jobs[SHELL_JOB_MAX];
 
 static int tokenize(char *line, char **argv, int max_args) {
     int argc = 0;
@@ -35,8 +45,96 @@ static int tokenize(char *line, char **argv, int max_args) {
     return argc;
 }
 
+static void copy_job_name(char *dest, const char *src, int dest_size) {
+    int i = 0;
+
+    if (dest == 0 || src == 0 || dest_size <= 0) {
+        return;
+    }
+
+    while (i + 1 < dest_size && src[i] != '\0') {
+        dest[i] = src[i];
+        ++i;
+    }
+
+    dest[i] = '\0';
+}
+
+static int shell_find_job_index(toyix_u32 pid) {
+    for (int i = 0; i < SHELL_JOB_MAX; ++i) {
+        if (shell_jobs[i].active && shell_jobs[i].pid == pid) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+static int shell_alloc_job_slot(void) {
+    for (int i = 0; i < SHELL_JOB_MAX; ++i) {
+        if (!shell_jobs[i].active) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+static void shell_track_job(toyix_u32 pid, const char *name) {
+    int index = shell_find_job_index(pid);
+
+    if (index < 0) {
+        index = shell_alloc_job_slot();
+    }
+
+    if (index < 0) {
+        return;
+    }
+
+    shell_jobs[index].pid = pid;
+    shell_jobs[index].active = 1;
+    copy_job_name(shell_jobs[index].name, name, SHELL_JOB_NAME_MAX);
+}
+
+static void shell_forget_job(toyix_u32 pid) {
+    int index = shell_find_job_index(pid);
+
+    if (index < 0) {
+        return;
+    }
+
+    shell_jobs[index].pid = 0;
+    shell_jobs[index].active = 0;
+    shell_jobs[index].name[0] = '\0';
+}
+
+static const char *shell_job_name(toyix_u32 pid) {
+    int index = shell_find_job_index(pid);
+
+    if (index < 0 || shell_jobs[index].name[0] == '\0') {
+        return "unknown";
+    }
+
+    return shell_jobs[index].name;
+}
+
+static const char *process_state_name(toyix_u32 state) {
+    switch (state) {
+        case TOYIX_PROCESS_NEW:
+            return "new";
+        case TOYIX_PROCESS_RUNNING:
+            return "running";
+        case TOYIX_PROCESS_ZOMBIE:
+            return "zombie";
+        case TOYIX_PROCESS_DESTROYED:
+            return "destroyed";
+        default:
+            return "unknown";
+    }
+}
+
 static void cmd_help(void) {
-    toyix_puts("commands: help, echo, args, run, exit");
+    toyix_puts("commands: help, echo, args, run, runbg, jobs, wait, kill, exit");
 }
 
 static void cmd_echo(int argc, char **argv) {
@@ -92,6 +190,134 @@ static void cmd_run(int argc, char **argv) {
     }
 
     toyix_printf("shell: %s exited code %u\n", program_name, status);
+}
+
+static void cmd_runbg(int argc, char **argv) {
+    const char *program_name;
+    int child_argc;
+    const char **child_argv;
+    toyix_i32 pid;
+
+    if (argc < 2) {
+        toyix_puts("usage: runbg PROGRAM [ARGS...]");
+        return;
+    }
+
+    if (shell_alloc_job_slot() < 0) {
+        toyix_puts("runbg: job table full");
+        return;
+    }
+
+    program_name = argv[1];
+    child_argc = argc - 1;
+    child_argv = (const char **)&argv[1];
+
+    pid = toyix_exec(program_name, child_argv, (toyix_u32)child_argc);
+    if (pid < 0) {
+        toyix_printf("runbg: failed to launch %s\n", program_name);
+        return;
+    }
+
+    shell_track_job((toyix_u32)pid, program_name);
+    toyix_printf("shell: runbg %s pid=%d\n", program_name, pid);
+}
+
+static void cmd_jobs(void) {
+    int found = 0;
+
+    toyix_puts("shell jobs:");
+
+    for (int i = 0; i < SHELL_JOB_MAX; ++i) {
+        toyix_procinfo_t info;
+
+        if (!shell_jobs[i].active) {
+            continue;
+        }
+
+        if (toyix_procinfo(shell_jobs[i].pid, &info) != 0) {
+            shell_forget_job(shell_jobs[i].pid);
+            continue;
+        }
+
+        found = 1;
+        toyix_printf(
+            "  pid=%u parent=%u name=%s state=%s",
+            info.pid,
+            info.parent_pid,
+            shell_jobs[i].name,
+            process_state_name(info.state)
+        );
+
+        if (info.exited) {
+            toyix_printf(" code=%u", info.exit_code);
+        }
+
+        if (info.kill_requested) {
+            toyix_write_str(" kill=yes");
+        }
+
+        toyix_putchar('\n');
+    }
+
+    if (!found) {
+        toyix_puts("  none");
+    }
+}
+
+static void cmd_wait(int argc, char **argv) {
+    toyix_i32 parsed = 0;
+    toyix_u32 pid = 0;
+    toyix_u32 status = 0;
+
+    if (argc != 2) {
+        toyix_puts("usage: wait PID");
+        return;
+    }
+
+    if (!toyix_atoi(argv[1], &parsed) || parsed <= 0) {
+        toyix_puts("wait: expected positive PID");
+        return;
+    }
+
+    pid = (toyix_u32)parsed;
+
+    if (toyix_waitpid(pid, &status) != 0) {
+        toyix_printf("wait: failed for pid %u\n", pid);
+        return;
+    }
+
+    toyix_printf(
+        "shell: wait pid=%u name=%s code=%u\n",
+        pid,
+        shell_job_name(pid),
+        status
+    );
+
+    shell_forget_job(pid);
+}
+
+static void cmd_kill(int argc, char **argv) {
+    toyix_i32 parsed = 0;
+    toyix_u32 pid = 0;
+
+    if (argc != 2) {
+        toyix_puts("usage: kill PID");
+        return;
+    }
+
+    if (!toyix_atoi(argv[1], &parsed) || parsed <= 0) {
+        toyix_puts("kill: expected positive PID");
+        return;
+    }
+
+    pid = (toyix_u32)parsed;
+
+    if (toyix_kill(pid) != 0) {
+        toyix_printf("kill: failed for pid %u\n", pid);
+        return;
+    }
+
+    toyix_printf("shell: kill requested pid=%u\n", pid);
 }
 
 static int cmd_exit(int argc, char **argv, int *exit_requested) {
@@ -161,6 +387,26 @@ int main(int argc, char **argv) {
 
         if (toyix_streq(cmd_argv[0], "run")) {
             cmd_run(cmd_argc, cmd_argv);
+            continue;
+        }
+
+        if (toyix_streq(cmd_argv[0], "runbg")) {
+            cmd_runbg(cmd_argc, cmd_argv);
+            continue;
+        }
+
+        if (toyix_streq(cmd_argv[0], "jobs")) {
+            cmd_jobs();
+            continue;
+        }
+
+        if (toyix_streq(cmd_argv[0], "wait")) {
+            cmd_wait(cmd_argc, cmd_argv);
+            continue;
+        }
+
+        if (toyix_streq(cmd_argv[0], "kill")) {
+            cmd_kill(cmd_argc, cmd_argv);
             continue;
         }
 

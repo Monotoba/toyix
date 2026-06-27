@@ -258,15 +258,23 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "shell: argv\\[0\\]=shell" build/test.log
 	grep -q "shell: argv\\[1\\]=alpha" build/test.log
 	grep -q "shell: argv\\[2\\]=beta" build/test.log
-	grep -q "commands: help, echo, args, run, exit" build/test.log
+	grep -q "commands: help, echo, args, run, runbg, jobs, wait, kill, exit" build/test.log
 	grep -q "hello from shell" build/test.log
 	grep -q "Program: launching counter argc=3 ppid=" build/test.log
 	grep -q "shell: run counter pid=" build/test.log
 	grep -q "shell: counter exited code 4" build/test.log
+	grep -q "shell: runbg counter pid=4" build/test.log
+	grep -q "shell jobs:" build/test.log
+	grep -q "state=running" build/test.log
+	grep -q "shell: kill requested pid=4" build/test.log
+	grep -q "Syscall: process counter pid=4 exited code 128" build/test.log
+	grep -q "state=zombie code=128" build/test.log
+	grep -q "shell: wait pid=4 name=counter code=128" build/test.log
+	grep -q "  none" build/test.log
 	grep -q "argv\\[0\\]=shell" build/test.log
 	grep -q "argv\\[1\\]=alpha" build/test.log
 	grep -q "argv\\[2\\]=beta" build/test.log
-	grep -q "Syscall: process counter pid=.*exited code 4" build/test.log
+	grep -E -q "Syscall: process counter pid=[0-9]+ exited code 4" build/test.log
 	grep -q "Syscall: process shell pid=" build/test.log
 	grep -q "exited code 7" build/test.log
 	grep -E -q "Process: destroyed pid=[0-9]+ ppid=[0-9]+ name=shell" build/test.log
@@ -276,7 +284,7 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, process ownership, zombies, exec, and waitpid smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, cooperative kill, shell jobs, exec, and waitpid smoke test passed."
 
 test-exception:
 	$(MAKE) clean

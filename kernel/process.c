@@ -126,6 +126,7 @@ process_t *process_create_empty(const char *name) {
     process->main_thread = 0;
     process->exit_code = 0xFFFFFFFFu;
     process->exited = 0;
+    process->kill_requested = 0;
     process->user_code_base = 0;
     process->user_entry = 0;
     process->user_stack_base = 0;
@@ -167,6 +168,56 @@ int process_is_child_of(process_t *process, uint32_t parent_pid) {
     irq_restore(flags);
 
     return result;
+}
+
+void process_request_kill(process_t *process) {
+    validate_live_process(process);
+
+    irq_flags_t flags = irq_save();
+
+    if (!process->exited &&
+        process->state != PROCESS_ZOMBIE &&
+        process->state != PROCESS_DESTROYED) {
+        process->kill_requested = 1;
+    }
+
+    irq_restore(flags);
+}
+
+int process_kill_requested(process_t *process) {
+    validate_live_process(process);
+
+    irq_flags_t flags = irq_save();
+    int requested = process->kill_requested;
+    irq_restore(flags);
+
+    return requested;
+}
+
+int process_request_kill_child(uint32_t parent_pid, uint32_t child_pid) {
+    irq_flags_t flags = irq_save();
+    process_t *cur = process_head;
+
+    while (cur != 0) {
+        if (cur->pid == child_pid &&
+            cur->parent_pid == parent_pid) {
+            if (!cur->exited &&
+                cur->state != PROCESS_ZOMBIE &&
+                cur->state != PROCESS_DESTROYED) {
+                cur->kill_requested = 1;
+                irq_restore(flags);
+                return 0;
+            }
+
+            irq_restore(flags);
+            return -1;
+        }
+
+        cur = cur->next;
+    }
+
+    irq_restore(flags);
+    return -1;
 }
 
 static uintptr_t page_align_down(uintptr_t value) {
@@ -510,6 +561,7 @@ typedef struct process_snapshot {
     process_state_t state;
     uint32_t exit_code;
     int exited;
+    int kill_requested;
     const char *name;
 } process_snapshot_t;
 
@@ -543,6 +595,7 @@ void process_list(void) {
         snapshots[count].state = cur->state;
         snapshots[count].exit_code = cur->exit_code;
         snapshots[count].exited = cur->exited;
+        snapshots[count].kill_requested = cur->kill_requested;
         snapshots[count].name = cur->name;
         count++;
         cur = cur->next;
@@ -551,7 +604,7 @@ void process_list(void) {
     uint32_t total = process_count;
     irq_restore(flags);
 
-    console_writeln("PID  PPID STATE     EXIT  NAME");
+    console_writeln("PID  PPID STATE     EXIT  KILL NAME");
 
     for (uint32_t i = 0; i < count; ++i) {
         print_padded_u32(snapshots[i].pid, 5);
@@ -573,6 +626,13 @@ void process_list(void) {
         }
 
         console_write("     ");
+
+        if (snapshots[i].kill_requested) {
+            console_write("yes  ");
+        } else {
+            console_write("no   ");
+        }
+
         console_writeln(snapshots[i].name);
     }
 
@@ -599,6 +659,7 @@ void process_exit_current(uint32_t exit_code) {
     process->exit_code = exit_code;
     process->exited = 1;
     process->state = PROCESS_ZOMBIE;
+    process->kill_requested = 0;
 
     last_exit_code = exit_code;
     last_exit_seen = 1;
@@ -660,6 +721,7 @@ void process_destroy(process_t *process) {
     }
 
     process->state = PROCESS_DESTROYED;
+    process->kill_requested = 0;
     process->magic = 0;
 
     kfree(process);

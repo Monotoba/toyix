@@ -47,6 +47,17 @@ static const embedded_program_t programs[] = {
 static const uint32_t program_count =
     sizeof(programs) / sizeof(programs[0]);
 
+static void inject_text(const char *text) {
+    if (text == 0) {
+        return;
+    }
+
+    while (*text != '\0') {
+        keyboard_debug_inject_char(*text);
+        ++text;
+    }
+}
+
 void program_registry_init(void) {
     console_write("Program registry: registered ");
     console_write_u32_dec(program_count);
@@ -249,72 +260,23 @@ void program_test_once(void) {
 
     thread_sleep_ticks(2);
 
-    keyboard_debug_inject_char('h');
-    keyboard_debug_inject_char('e');
-    keyboard_debug_inject_char('l');
-    keyboard_debug_inject_char('p');
-    keyboard_debug_inject_char('\n');
+    inject_text("help\n");
+    inject_text("echo hello from shell\n");
+    inject_text("run counter alpha beta\n");
+    inject_text("runbg counter victim\n");
+    inject_text("jobs\n");
 
-    keyboard_debug_inject_char('e');
-    keyboard_debug_inject_char('c');
-    keyboard_debug_inject_char('h');
-    keyboard_debug_inject_char('o');
-    keyboard_debug_inject_char(' ');
-    keyboard_debug_inject_char('h');
-    keyboard_debug_inject_char('e');
-    keyboard_debug_inject_char('l');
-    keyboard_debug_inject_char('l');
-    keyboard_debug_inject_char('o');
-    keyboard_debug_inject_char(' ');
-    keyboard_debug_inject_char('f');
-    keyboard_debug_inject_char('r');
-    keyboard_debug_inject_char('o');
-    keyboard_debug_inject_char('m');
-    keyboard_debug_inject_char(' ');
-    keyboard_debug_inject_char('s');
-    keyboard_debug_inject_char('h');
-    keyboard_debug_inject_char('e');
-    keyboard_debug_inject_char('l');
-    keyboard_debug_inject_char('l');
-    keyboard_debug_inject_char('\n');
+    thread_sleep_ticks(2);
 
-    keyboard_debug_inject_char('r');
-    keyboard_debug_inject_char('u');
-    keyboard_debug_inject_char('n');
-    keyboard_debug_inject_char(' ');
-    keyboard_debug_inject_char('c');
-    keyboard_debug_inject_char('o');
-    keyboard_debug_inject_char('u');
-    keyboard_debug_inject_char('n');
-    keyboard_debug_inject_char('t');
-    keyboard_debug_inject_char('e');
-    keyboard_debug_inject_char('r');
-    keyboard_debug_inject_char(' ');
-    keyboard_debug_inject_char('a');
-    keyboard_debug_inject_char('l');
-    keyboard_debug_inject_char('p');
-    keyboard_debug_inject_char('h');
-    keyboard_debug_inject_char('a');
-    keyboard_debug_inject_char(' ');
-    keyboard_debug_inject_char('b');
-    keyboard_debug_inject_char('e');
-    keyboard_debug_inject_char('t');
-    keyboard_debug_inject_char('a');
-    keyboard_debug_inject_char('\n');
+    inject_text("kill 4\n");
 
-    keyboard_debug_inject_char('a');
-    keyboard_debug_inject_char('r');
-    keyboard_debug_inject_char('g');
-    keyboard_debug_inject_char('s');
-    keyboard_debug_inject_char('\n');
+    thread_sleep_ticks(10);
 
-    keyboard_debug_inject_char('e');
-    keyboard_debug_inject_char('x');
-    keyboard_debug_inject_char('i');
-    keyboard_debug_inject_char('t');
-    keyboard_debug_inject_char(' ');
-    keyboard_debug_inject_char('7');
-    keyboard_debug_inject_char('\n');
+    inject_text("jobs\n");
+    inject_text("wait 4\n");
+    inject_text("jobs\n");
+    inject_text("args\n");
+    inject_text("exit 7\n");
 
     found = process_find(pid);
     if (found != process) {

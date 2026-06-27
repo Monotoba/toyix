@@ -28,6 +28,7 @@ typedef struct process {
 
     uint32_t exit_code;
     int exited;
+    int kill_requested;
 
     uintptr_t user_code_base;
     uintptr_t user_entry;
@@ -79,6 +80,12 @@ int process_setup_arguments(
 void process_set_parent(process_t *process, uint32_t parent_pid);
 uint32_t process_parent_pid(process_t *process);
 int process_is_child_of(process_t *process, uint32_t parent_pid);
+
+#define PROCESS_KILLED_EXIT_CODE 128u
+
+void process_request_kill(process_t *process);
+int process_kill_requested(process_t *process);
+int process_request_kill_child(uint32_t parent_pid, uint32_t child_pid);
 
 void process_start_user(process_t *process);
 
