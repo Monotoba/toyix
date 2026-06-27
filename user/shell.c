@@ -134,7 +134,7 @@ static const char *process_state_name(toyix_u32 state) {
 }
 
 static void cmd_help(void) {
-    toyix_puts("commands: help, echo, args, run, runbg, jobs, wait, kill, exit");
+    toyix_puts("commands: help, echo, args, cat, run, runbg, jobs, wait, kill, exit");
 }
 
 static void cmd_echo(int argc, char **argv) {
@@ -156,6 +156,41 @@ static void cmd_args(int argc, char **argv) {
     toyix_printf("argc=%d\n", argc);
     for (i = 0; i < argc; ++i) {
         toyix_printf("argv[%d]=%s\n", i, argv[i]);
+    }
+}
+
+static void cmd_cat(int argc, char **argv) {
+    char buffer[64];
+    toyix_i32 fd = 0;
+
+    if (argc != 2) {
+        toyix_puts("usage: cat PATH");
+        return;
+    }
+
+    fd = toyix_open(argv[1], 0);
+    if (fd < 0) {
+        toyix_printf("cat: could not open %s\n", argv[1]);
+        return;
+    }
+
+    for (;;) {
+        toyix_i32 got = toyix_read((toyix_u32)fd, buffer, sizeof(buffer));
+
+        if (got < 0) {
+            toyix_puts("cat: read failed");
+            break;
+        }
+
+        if (got == 0) {
+            break;
+        }
+
+        toyix_write(FD_STDOUT, buffer, (toyix_u32)got);
+    }
+
+    if (toyix_close((toyix_u32)fd) != 0) {
+        toyix_puts("cat: close failed");
     }
 }
 
@@ -382,6 +417,11 @@ int main(int argc, char **argv) {
 
         if (toyix_streq(cmd_argv[0], "args")) {
             cmd_args(argc, argv);
+            continue;
+        }
+
+        if (toyix_streq(cmd_argv[0], "cat")) {
+            cmd_cat(cmd_argc, cmd_argv);
             continue;
         }
 

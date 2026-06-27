@@ -8,11 +8,13 @@
 #include "kernel/terminal.h"
 #include "kernel/thread.h"
 #include "kernel/usercopy.h"
+#include "kernel/vfs.h"
 
 #define SYSCALL_RW_MAX 256u
 #define SYSCALL_EXEC_MAX_ARGS    8u
 #define SYSCALL_EXEC_MAX_NAME    32u
 #define SYSCALL_EXEC_MAX_ARG_LEN 64u
+#define SYSCALL_PATH_MAX         64u
 
 static int syscall_copy_user_string(
     uintptr_t user_str,
@@ -86,11 +88,6 @@ static void syscall_read(interrupt_frame_t *frame) {
     uintptr_t user_buf = (uintptr_t)frame->ecx;
     uint32_t length = frame->edx;
 
-    if (fd != FD_STDIN) {
-        frame->eax = 0xFFFFFFFFu;
-        return;
-    }
-
     if (length > SYSCALL_RW_MAX) {
         length = SYSCALL_RW_MAX;
     }
@@ -100,10 +97,42 @@ static void syscall_read(interrupt_frame_t *frame) {
         return;
     }
 
-    char buffer[SYSCALL_RW_MAX + 1u];
+    if (fd == FD_STDIN) {
+        char buffer[SYSCALL_RW_MAX + 1u];
+        size_t got = 0;
 
-    interrupts_enable();
-    size_t got = terminal_readline(buffer, (size_t)length + 1u);
+        interrupts_enable();
+        got = terminal_readline(buffer, (size_t)length + 1u);
+
+        if (copy_to_user(user_buf, buffer, got) != USERCOPY_OK) {
+            frame->eax = 0xFFFFFFFFu;
+            return;
+        }
+
+        frame->eax = (uint32_t)got;
+        return;
+    }
+
+    process_t *current = process_current();
+    vfs_file_t *file = 0;
+    char buffer[SYSCALL_RW_MAX];
+    uint32_t got = 0;
+
+    if (current == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    file = process_fd_get(current, fd);
+    if (file == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (vfs_read(file, buffer, length, &got) != VFS_OK) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
 
     if (copy_to_user(user_buf, buffer, got) != USERCOPY_OK) {
         frame->eax = 0xFFFFFFFFu;
@@ -111,6 +140,57 @@ static void syscall_read(interrupt_frame_t *frame) {
     }
 
     frame->eax = (uint32_t)got;
+}
+
+static void syscall_open(interrupt_frame_t *frame) {
+    uintptr_t user_path = (uintptr_t)frame->ebx;
+    char path[SYSCALL_PATH_MAX];
+    vfs_file_t *file = 0;
+    process_t *current = process_current();
+    int fd = -1;
+
+    (void)frame->ecx;
+
+    if (current == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (syscall_copy_user_string(user_path, path, sizeof(path)) != 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (vfs_open(path, &file) != VFS_OK || file == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    fd = process_fd_install(current, file);
+    if (fd < 0) {
+        vfs_close(file);
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    frame->eax = (uint32_t)fd;
+}
+
+static void syscall_close(interrupt_frame_t *frame) {
+    uint32_t fd = frame->ebx;
+    process_t *current = process_current();
+
+    if (current == 0 || fd < PROCESS_FIRST_FILE_FD) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (process_fd_close(current, fd) != 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    frame->eax = 0;
 }
 
 static void syscall_exec(interrupt_frame_t *frame) {
@@ -387,6 +467,16 @@ void syscall_handler(interrupt_frame_t *frame) {
 
         case SYS_KILL:
             syscall_kill(frame);
+            return;
+
+        case SYS_OPEN:
+            syscall_open(frame);
+            syscall_finish_or_kill(frame);
+            return;
+
+        case SYS_CLOSE:
+            syscall_close(frame);
+            syscall_finish_or_kill(frame);
             return;
 
         case SYS_EXIT: {

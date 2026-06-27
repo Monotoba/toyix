@@ -2,7 +2,7 @@
 
 This roadmap tracks the direction of the Toyix series from the current published chapters through the planned text-based OS milestones ahead.
 
-Toyix already has the early kernel foundation in place: paging, a heap, kernel threads, preemption, blocking primitives, terminal input, a kernel monitor, user-mode entry, fd-style syscalls, minimal processes, per-process address spaces, ELF loading, embedded compiled user programs, `argc`/`argv` startup, a program registry, process-table monitor commands, a shared userland runtime, a first interactive user-mode shell, parent-owned zombie child tracking, shell-visible background jobs, and cooperative child termination.
+Toyix already has the early kernel foundation in place: paging, a heap, kernel threads, preemption, blocking primitives, terminal input, a kernel monitor, user-mode entry, fd-style syscalls, minimal processes, per-process address spaces, ELF loading, embedded compiled user programs, `argc`/`argv` startup, a program registry, process-table monitor commands, a shared userland runtime, a first interactive user-mode shell, parent-owned zombie child tracking, shell-visible background jobs, cooperative child termination, and a first read-only RAMFS/VFS path with named file reads from user mode.
 
 The remaining work is no longer best described as a loose set of future themes. The planned chapters define a clearer path from the current embedded-program system to a text-based operating system that can later host a GUI and applications.
 
@@ -43,10 +43,11 @@ The remaining work is no longer best described as a loose set of future themes. 
 | 31 | `SYS_EXEC`, `SYS_WAITPID`, and shell-launched programs |
 | 32 | Process ownership, waiting, and job state |
 | 33 | Process termination and kill checks |
+| 34 | First RAMFS and core file APIs |
 
 ## Planned Chapter Path
 
-The roadmap now runs from Chapter 34 through Chapter 111.
+The roadmap now runs from Chapter 35 through Chapter 111.
 
 ### 1. User Shell and Process Control
 
@@ -61,7 +62,6 @@ These chapters add the first coherent VFS layer, RAMFS-backed program directorie
 
 | Chapter | Topic |
 | ------: | ----- |
-| 34 | First RAMFS and Core File APIs |
 | 35 | Turning `/programs` into a Real Directory |
 | 36 | Path-Based Program Launching with `/programs` |
 | 37 | Shell Job References with `%1` |
@@ -181,7 +181,7 @@ The planned chapters imply these concrete milestones:
 
 | Milestone | Expected System State |
 | --------- | --------------------- |
-| After 33 | User shell exists, programs can launch other programs, and process ownership/wait semantics are coherent |
+| After 34 | User shell exists, programs can launch other programs, kill child jobs, and read named files from the first RAMFS |
 | After 47 | The shell supports practical text workflows with writable files and output redirection |
 | After 80 | Toyix has a persistent filesystem with directories, permissions, mutation, and large-file support |
 | After 92 | Core everyday commands run from userland with CWD-aware path handling |
@@ -192,7 +192,7 @@ The planned chapters imply these concrete milestones:
 
 The roadmap is now centered on reaching a usable text-based operating system after the first shell milestone and before any windowing system work begins.
 
-That means the priorities after Chapter 32 are:
+That means the priorities after Chapter 34 are:
 
 ```text
 user shell and process control

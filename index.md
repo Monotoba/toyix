@@ -58,3 +58,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 31: `SYS_EXEC`, `SYS_WAITPID`, and Shell-Launched Programs](articles/chapter_31.md)
 - [Chapter 32: Process Ownership, Waiting, and Job State](articles/chapter_32.md)
 - [Chapter 33: Process Termination and Kill Checks](articles/chapter_33.md)
+- [Chapter 34: First RAMFS and Core File APIs](articles/chapter_34.md)

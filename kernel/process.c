@@ -12,6 +12,7 @@
 #include "kernel/syscall.h"
 #include "kernel/thread.h"
 #include "kernel/usermode.h"
+#include "kernel/vfs.h"
 
 #define PROCESS_MAGIC 0x50524F43u
 #define PROCESS_SNAPSHOT_MAX 32u
@@ -135,6 +136,11 @@ process_t *process_create_empty(const char *name) {
     process->next = 0;
     process->prev = 0;
 
+    for (uint32_t i = 0; i < PROCESS_MAX_FDS; ++i) {
+        process->fds[i].used = 0;
+        process->fds[i].file = 0;
+    }
+
     irq_flags_t flags = irq_save();
     process_table_insert(process);
     irq_restore(flags);
@@ -218,6 +224,106 @@ int process_request_kill_child(uint32_t parent_pid, uint32_t child_pid) {
 
     irq_restore(flags);
     return -1;
+}
+
+int process_fd_install(process_t *process, struct vfs_file *file) {
+    validate_live_process(process);
+
+    if (file == 0) {
+        return -1;
+    }
+
+    irq_flags_t flags = irq_save();
+
+    for (uint32_t fd = PROCESS_FIRST_FILE_FD;
+         fd < PROCESS_MAX_FDS;
+         ++fd) {
+        if (!process->fds[fd].used) {
+            process->fds[fd].used = 1;
+            process->fds[fd].file = file;
+            irq_restore(flags);
+            return (int)fd;
+        }
+    }
+
+    irq_restore(flags);
+    return -1;
+}
+
+struct vfs_file *process_fd_get(process_t *process, uint32_t fd) {
+    validate_live_process(process);
+
+    if (fd < PROCESS_FIRST_FILE_FD || fd >= PROCESS_MAX_FDS) {
+        return 0;
+    }
+
+    irq_flags_t flags = irq_save();
+    struct vfs_file *file = 0;
+
+    if (process->fds[fd].used) {
+        file = process->fds[fd].file;
+    }
+
+    irq_restore(flags);
+    return file;
+}
+
+int process_fd_close(process_t *process, uint32_t fd) {
+    validate_live_process(process);
+
+    if (fd < PROCESS_FIRST_FILE_FD || fd >= PROCESS_MAX_FDS) {
+        return -1;
+    }
+
+    irq_flags_t flags = irq_save();
+    struct vfs_file *file = 0;
+
+    if (process->fds[fd].used) {
+        file = process->fds[fd].file;
+        process->fds[fd].used = 0;
+        process->fds[fd].file = 0;
+    }
+
+    irq_restore(flags);
+
+    if (file == 0) {
+        return -1;
+    }
+
+    vfs_close(file);
+    return 0;
+}
+
+void process_close_all_files(process_t *process) {
+    validate_live_process(process);
+
+    struct vfs_file *to_close[PROCESS_MAX_FDS];
+
+    for (uint32_t i = 0; i < PROCESS_MAX_FDS; ++i) {
+        to_close[i] = 0;
+    }
+
+    irq_flags_t flags = irq_save();
+
+    for (uint32_t fd = PROCESS_FIRST_FILE_FD;
+         fd < PROCESS_MAX_FDS;
+         ++fd) {
+        if (process->fds[fd].used) {
+            to_close[fd] = process->fds[fd].file;
+            process->fds[fd].used = 0;
+            process->fds[fd].file = 0;
+        }
+    }
+
+    irq_restore(flags);
+
+    for (uint32_t fd = PROCESS_FIRST_FILE_FD;
+         fd < PROCESS_MAX_FDS;
+         ++fd) {
+        if (to_close[fd] != 0) {
+            vfs_close(to_close[fd]);
+        }
+    }
 }
 
 static uintptr_t page_align_down(uintptr_t value) {
@@ -714,6 +820,8 @@ void process_destroy(process_t *process) {
 
     process_table_remove(process);
     irq_restore(flags);
+
+    process_close_all_files(process);
 
     if (process->address_space != 0) {
         address_space_destroy(process->address_space);

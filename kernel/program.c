@@ -262,6 +262,8 @@ void program_test_once(void) {
 
     inject_text("help\n");
     inject_text("echo hello from shell\n");
+    inject_text("cat /README\n");
+    inject_text("cat /programs\n");
     inject_text("run counter alpha beta\n");
     inject_text("runbg counter victim\n");
     inject_text("jobs\n");

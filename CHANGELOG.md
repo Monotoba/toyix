@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_34] - 2026-06-27
+
+- Add a first read-only RAMFS/VFS layer with exact-path lookup for `/README` and `/programs`.
+- Add per-process file descriptor slots plus `SYS_OPEN`, file-backed `SYS_READ`, and `SYS_CLOSE` to the kernel and user syscall ABI.
+- Extend the user shell with `cat PATH` and update the boot smoke flow to verify RAMFS reads from user mode.
+- Update Chapter 34, the README, the series index, and the roadmap for the first filesystem and named-file userland milestone.
+
 ## [Chapter_33] - 2026-06-27
 
 - Add `kill_requested` process state, cooperative child-kill helpers, and `PROCESS_KILLED_EXIT_CODE` for parent-owned process termination.

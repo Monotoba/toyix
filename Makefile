@@ -92,6 +92,7 @@ OBJS := \
     build/kernel/thread.o \
     build/kernel/usercopy.o \
     build/kernel/usermode.o \
+    build/kernel/vfs.o \
     build/kernel/vmem.o \
     build/kernel/wait_queue.o \
     build/kernel/lib/mem.o \
@@ -202,6 +203,10 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "Heap test: VMM-backed allocation/free sanity check passed" build/test.log
 	grep -q "Threads: blocking scheduler initialized" build/test.log
 	grep -q "Process: process table initialized" build/test.log
+	grep -q "VFS: initialized RAMFS with 2 file(s)" build/test.log
+	grep -q "VFS test: starting RAMFS open/read/close test" build/test.log
+	grep -q "VFS test: first bytes: Toyix RAMFS" build/test.log
+	grep -q "VFS test: RAMFS sanity check passed" build/test.log
 	grep -q "Thread test: worker A step 0" build/test.log
 	grep -q "Thread test: worker B step 0" build/test.log
 	grep -q "Thread test: completed software-yield multitasking test" build/test.log
@@ -258,8 +263,10 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "shell: argv\\[0\\]=shell" build/test.log
 	grep -q "shell: argv\\[1\\]=alpha" build/test.log
 	grep -q "shell: argv\\[2\\]=beta" build/test.log
-	grep -q "commands: help, echo, args, run, runbg, jobs, wait, kill, exit" build/test.log
+	grep -q "commands: help, echo, args, cat, run, runbg, jobs, wait, kill, exit" build/test.log
 	grep -q "hello from shell" build/test.log
+	grep -q "This file lives inside the kernel image." build/test.log
+	grep -q "The first filesystem is read-only and memory-backed." build/test.log
 	grep -q "Program: launching counter argc=3 ppid=" build/test.log
 	grep -q "shell: run counter pid=" build/test.log
 	grep -q "shell: counter exited code 4" build/test.log
@@ -284,7 +291,7 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, cooperative kill, shell jobs, exec, and waitpid smoke test passed."
+	@echo "Boot, memory, heap, VFS, RAMFS, cat, process control, and shell jobs smoke test passed."
 
 test-exception:
 	$(MAKE) clean

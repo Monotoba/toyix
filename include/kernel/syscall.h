@@ -19,6 +19,8 @@
 #define SYS_GETPPID  9u
 #define SYS_PROCINFO 10u
 #define SYS_KILL     11u
+#define SYS_OPEN     12u
+#define SYS_CLOSE    13u
 
 typedef struct syscall_procinfo {
     uint32_t pid;

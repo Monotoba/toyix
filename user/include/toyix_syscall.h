@@ -19,6 +19,8 @@ typedef int toyix_i32;
 #define SYS_GETPPID  9u
 #define SYS_PROCINFO 10u
 #define SYS_KILL     11u
+#define SYS_OPEN     12u
+#define SYS_CLOSE    13u
 
 #define TOYIX_PROCESS_NEW       0u
 #define TOYIX_PROCESS_RUNNING   1u
@@ -178,6 +180,35 @@ static inline toyix_i32 toyix_kill(toyix_u32 pid) {
         : "=a"(result)
         : "a"(SYS_KILL),
           "b"(pid)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_open(const char *path, toyix_u32 flags) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_OPEN),
+          "b"(path),
+          "c"(flags)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_close(toyix_u32 fd) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_CLOSE),
+          "b"(fd)
         : "memory"
     );
 

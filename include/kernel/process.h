@@ -6,6 +6,15 @@
 #include "kernel/address_space.h"
 
 struct thread;
+struct vfs_file;
+
+#define PROCESS_MAX_FDS 16u
+#define PROCESS_FIRST_FILE_FD 3u
+
+typedef struct process_fd {
+    int used;
+    struct vfs_file *file;
+} process_fd_t;
 
 typedef enum process_state {
     PROCESS_NEW = 0,
@@ -29,6 +38,8 @@ typedef struct process {
     uint32_t exit_code;
     int exited;
     int kill_requested;
+
+    process_fd_t fds[PROCESS_MAX_FDS];
 
     uintptr_t user_code_base;
     uintptr_t user_entry;
@@ -86,6 +97,11 @@ int process_is_child_of(process_t *process, uint32_t parent_pid);
 void process_request_kill(process_t *process);
 int process_kill_requested(process_t *process);
 int process_request_kill_child(uint32_t parent_pid, uint32_t child_pid);
+
+int process_fd_install(process_t *process, struct vfs_file *file);
+struct vfs_file *process_fd_get(process_t *process, uint32_t fd);
+int process_fd_close(process_t *process, uint32_t fd);
+void process_close_all_files(process_t *process);
 
 void process_start_user(process_t *process);
 

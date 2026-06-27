@@ -21,6 +21,7 @@
 #include "kernel/terminal.h"
 #include "kernel/thread.h"
 #include "kernel/usermode.h"
+#include "kernel/vfs.h"
 #include "kernel/vmem.h"
 
 extern const console_driver_t serial_console_driver;
@@ -68,6 +69,8 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     threading_init();
     process_init_system();
+    vfs_init();
+    vfs_test_once();
     program_registry_init();
     thread_test_once();
 
