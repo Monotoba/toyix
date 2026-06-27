@@ -13,6 +13,8 @@
 #define SYS_WRITE 3u
 #define SYS_SLEEP 4u
 #define SYS_READ  5u
+#define SYS_EXEC  6u
+#define SYS_WAITPID 7u
 
 void syscall_handler(interrupt_frame_t *frame);
 

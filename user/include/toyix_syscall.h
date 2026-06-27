@@ -13,6 +13,8 @@ typedef int toyix_i32;
 #define SYS_WRITE 3u
 #define SYS_SLEEP 4u
 #define SYS_READ  5u
+#define SYS_EXEC  6u
+#define SYS_WAITPID 7u
 
 static inline toyix_i32 toyix_read(
     toyix_u32 fd,
@@ -62,6 +64,44 @@ static inline toyix_i32 toyix_sleep(toyix_u32 ticks) {
         : "=a"(result)
         : "a"(SYS_SLEEP),
           "b"(ticks)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_exec(
+    const char *name,
+    const char **argv,
+    toyix_u32 argc
+) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_EXEC),
+          "b"(name),
+          "c"(argv),
+          "d"(argc)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_waitpid(
+    toyix_u32 pid,
+    toyix_u32 *status
+) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_WAITPID),
+          "b"(pid),
+          "c"(status)
         : "memory"
     );
 

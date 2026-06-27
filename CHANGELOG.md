@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_31] - 2026-06-27
+
+- Add `SYS_EXEC` and `SYS_WAITPID` to the kernel and user syscall ABI.
+- Add kernel-side user-string copying, embedded-program launch, and wait/cleanup handling for shell-started child processes.
+- Add the shell `run PROGRAM [ARGS...]` built-in and extend the boot smoke flow to verify shell-launched `counter` execution and exit-status reporting.
+- Update Chapter 31, the README, the series index, and the roadmap for the first userland process-control milestone.
+
 ## [Chapter_30] - 2026-06-27
 
 - Extend the shared userland runtime with formatted output, hex printing, numeric parsing, string comparison, whitespace checks, and line-oriented input helpers.

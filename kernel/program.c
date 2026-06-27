@@ -271,6 +271,30 @@ void program_test_once(void) {
     keyboard_debug_inject_char('l');
     keyboard_debug_inject_char('\n');
 
+    keyboard_debug_inject_char('r');
+    keyboard_debug_inject_char('u');
+    keyboard_debug_inject_char('n');
+    keyboard_debug_inject_char(' ');
+    keyboard_debug_inject_char('c');
+    keyboard_debug_inject_char('o');
+    keyboard_debug_inject_char('u');
+    keyboard_debug_inject_char('n');
+    keyboard_debug_inject_char('t');
+    keyboard_debug_inject_char('e');
+    keyboard_debug_inject_char('r');
+    keyboard_debug_inject_char(' ');
+    keyboard_debug_inject_char('a');
+    keyboard_debug_inject_char('l');
+    keyboard_debug_inject_char('p');
+    keyboard_debug_inject_char('h');
+    keyboard_debug_inject_char('a');
+    keyboard_debug_inject_char(' ');
+    keyboard_debug_inject_char('b');
+    keyboard_debug_inject_char('e');
+    keyboard_debug_inject_char('t');
+    keyboard_debug_inject_char('a');
+    keyboard_debug_inject_char('\n');
+
     keyboard_debug_inject_char('a');
     keyboard_debug_inject_char('r');
     keyboard_debug_inject_char('g');

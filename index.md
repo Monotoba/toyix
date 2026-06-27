@@ -55,3 +55,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 28: Pattern-Based User Program Build System](articles/chapter_28.md)
 - [Chapter 29: First Userland Runtime](articles/chapter_29.md)
 - [Chapter 30: First User-Mode Shell](articles/chapter_30.md)
+- [Chapter 31: `SYS_EXEC`, `SYS_WAITPID`, and Shell-Launched Programs](articles/chapter_31.md)

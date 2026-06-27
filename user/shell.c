@@ -36,7 +36,7 @@ static int tokenize(char *line, char **argv, int max_args) {
 }
 
 static void cmd_help(void) {
-    toyix_puts("commands: help, echo, args, exit");
+    toyix_puts("commands: help, echo, args, run, exit");
 }
 
 static void cmd_echo(int argc, char **argv) {
@@ -59,6 +59,38 @@ static void cmd_args(int argc, char **argv) {
     for (i = 0; i < argc; ++i) {
         toyix_printf("argv[%d]=%s\n", i, argv[i]);
     }
+}
+
+static void cmd_run(int argc, char **argv) {
+    const char *program_name;
+    int child_argc;
+    const char **child_argv;
+    toyix_i32 pid;
+    toyix_u32 status = 0;
+
+    if (argc < 2) {
+        toyix_puts("usage: run PROGRAM [ARGS...]");
+        return;
+    }
+
+    program_name = argv[1];
+    child_argc = argc - 1;
+    child_argv = (const char **)&argv[1];
+
+    pid = toyix_exec(program_name, child_argv, (toyix_u32)child_argc);
+    if (pid < 0) {
+        toyix_printf("run: failed to launch %s\n", program_name);
+        return;
+    }
+
+    toyix_printf("shell: run %s pid=%d\n", program_name, pid);
+
+    if (toyix_waitpid((toyix_u32)pid, &status) != 0) {
+        toyix_printf("run: wait failed for pid %d\n", pid);
+        return;
+    }
+
+    toyix_printf("shell: %s exited code %u\n", program_name, status);
 }
 
 static int cmd_exit(int argc, char **argv, int *exit_requested) {
@@ -123,6 +155,11 @@ int main(int argc, char **argv) {
 
         if (toyix_streq(cmd_argv[0], "args")) {
             cmd_args(argc, argv);
+            continue;
+        }
+
+        if (toyix_streq(cmd_argv[0], "run")) {
+            cmd_run(cmd_argc, cmd_argv);
             continue;
         }
 

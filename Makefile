@@ -257,11 +257,14 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "shell: argv\\[0\\]=shell" build/test.log
 	grep -q "shell: argv\\[1\\]=alpha" build/test.log
 	grep -q "shell: argv\\[2\\]=beta" build/test.log
-	grep -q "commands: help, echo, args, exit" build/test.log
+	grep -q "commands: help, echo, args, run, exit" build/test.log
 	grep -q "hello from shell" build/test.log
+	grep -q "shell: run counter pid=" build/test.log
+	grep -q "shell: counter exited code 4" build/test.log
 	grep -q "argv\\[0\\]=shell" build/test.log
 	grep -q "argv\\[1\\]=alpha" build/test.log
 	grep -q "argv\\[2\\]=beta" build/test.log
+	grep -q "Syscall: process counter pid=.*exited code 4" build/test.log
 	grep -q "Syscall: process shell pid=" build/test.log
 	grep -q "exited code 7" build/test.log
 	grep -q "Program test: user shell cleanup sanity check passed" build/test.log
@@ -270,7 +273,7 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, process table, user runtime, and shell smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, process table, user shell exec, and waitpid smoke test passed."
 
 test-exception:
 	$(MAKE) clean

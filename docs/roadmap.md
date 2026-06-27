@@ -1,10 +1,10 @@
 # Toyix Roadmap
 
-This roadmap tracks the direction of the Toyix series against the current combined chapter plan now staged in `articles/normalized/`.
+This roadmap tracks the direction of the Toyix series from the current published chapters through the planned text-based OS milestones ahead.
 
 Toyix already has the early kernel foundation in place: paging, a heap, kernel threads, preemption, blocking primitives, terminal input, a kernel monitor, user-mode entry, fd-style syscalls, minimal processes, per-process address spaces, ELF loading, embedded compiled user programs, `argc`/`argv` startup, a program registry, process-table monitor commands, a shared userland runtime, and a first interactive user-mode shell.
 
-The remaining work is no longer best described as a loose set of future themes. The normalized chapters define a clearer path from the current embedded-program system to a text-based operating system that can later host a GUI and applications.
+The remaining work is no longer best described as a loose set of future themes. The planned chapters define a clearer path from the current embedded-program system to a text-based operating system that can later host a GUI and applications.
 
 ## Completed Chapters
 
@@ -40,10 +40,11 @@ The remaining work is no longer best described as a loose set of future themes. 
 | 28 | Pattern-based user-program build rules and a `USER_PROGRAMS` list |
 | 29 | First userland runtime |
 | 30 | First user-mode shell |
+| 31 | `SYS_EXEC`, `SYS_WAITPID`, and shell-launched programs |
 
-## Normalized Chapter Path
+## Planned Chapter Path
 
-The combined roadmap now runs from Chapter 31 through Chapter 111.
+The roadmap now runs from Chapter 32 through Chapter 111.
 
 ### 1. User Shell and Process Control
 
@@ -51,7 +52,6 @@ These chapters turn the current embedded-user-program path into a real shell and
 
 | Chapter | Topic |
 | ------: | ----- |
-| 31 | `SYS_EXEC`, `SYS_WAITPID`, and Shell-Launched Programs |
 | 32 | Process Ownership, Waiting, and Job State |
 | 33 | Process Termination and Kill Checks |
 
@@ -177,7 +177,7 @@ These chapters push the text-based OS to the point where it is practical to admi
 
 ## Milestone Checkpoints
 
-The normalized chapters imply these concrete milestones:
+The planned chapters imply these concrete milestones:
 
 | Milestone | Expected System State |
 | --------- | --------------------- |
@@ -192,7 +192,7 @@ The normalized chapters imply these concrete milestones:
 
 The roadmap is now centered on reaching a usable text-based operating system after the first shell milestone and before any windowing system work begins.
 
-That means the priorities after Chapter 29 are:
+That means the priorities after Chapter 31 are:
 
 ```text
 user shell and process control
@@ -204,4 +204,4 @@ networking and device support
 pre-GUI administration and packaging
 ```
 
-The combined chapter plan already encodes that path. The main planning job now is to keep published chapters aligned with this sequence while preserving the implementation detail needed to make each checkpoint real.
+The chapter plan already encodes that path. The main planning job now is to keep published chapters aligned with this sequence while preserving the implementation detail needed to make each checkpoint real.
