@@ -8,24 +8,32 @@
 #include "kernel/program.h"
 #include "kernel/string.h"
 
-extern const uint8_t user_demo_elf_start[];
-extern const uint8_t user_demo_elf_end[];
-extern const uint8_t user_counter_elf_start[];
-extern const uint8_t user_counter_elf_end[];
+#define DECLARE_EMBEDDED_PROGRAM(symbol) \
+    extern const uint8_t user_##symbol##_elf_start[]; \
+    extern const uint8_t user_##symbol##_elf_end[]
+
+#define EMBEDDED_PROGRAM(symbol, public_name, text) \
+    { \
+        .name = public_name, \
+        .description = text, \
+        .image_start = user_##symbol##_elf_start, \
+        .image_end = user_##symbol##_elf_end \
+    }
+
+DECLARE_EMBEDDED_PROGRAM(demo);
+DECLARE_EMBEDDED_PROGRAM(counter);
 
 static const embedded_program_t programs[] = {
-    {
-        .name = "demo",
-        .description = "interactive stdin/stdout demo",
-        .image_start = user_demo_elf_start,
-        .image_end = user_demo_elf_end
-    },
-    {
-        .name = "counter",
-        .description = "background-safe counter demo",
-        .image_start = user_counter_elf_start,
-        .image_end = user_counter_elf_end
-    }
+    EMBEDDED_PROGRAM(
+        demo,
+        "demo",
+        "interactive stdin/stdout demo"
+    ),
+    EMBEDDED_PROGRAM(
+        counter,
+        "counter",
+        "background-safe counter demo"
+    )
 };
 
 static const uint32_t program_count =

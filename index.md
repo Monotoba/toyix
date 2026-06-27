@@ -52,3 +52,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 25: Embedded Program Registry and `run` Monitor Command](articles/chapter_25.md)
 - [Chapter 26: Process Table, `ps`, `runbg`, and `wait PID`](articles/chapter_26.md)
 - [Chapter 27: A Second User Program for Safe Background Execution](articles/chapter_27.md)
+- [Chapter 28: Pattern-Based User Program Build System](articles/chapter_28.md)

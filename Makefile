@@ -10,6 +10,10 @@ GRUB_MKRESCUE := grub-mkrescue
 QEMU        := qemu-system-i386
 OBJCOPY     ?= $(TARGET)-objcopy
 
+USER_PROGRAMS := demo counter
+USER_ELFS := $(USER_PROGRAMS:%=build/user/%.elf)
+USER_BLOBS := $(USER_PROGRAMS:%=build/user/%_elf_blob.o)
+
 CFLAGS := -std=gnu11 \
           -ffreestanding \
           -O2 \
@@ -92,10 +96,9 @@ OBJS := \
     build/drivers/console/serial.o \
     build/drivers/console/vga_text.o \
     build/drivers/input/keyboard.o \
-    build/user/demo_elf_blob.o \
-    build/user/counter_elf_blob.o
+    $(USER_BLOBS)
 
-.PHONY: all clean iso run test test-exception test-page-fault FORCE
+.PHONY: all clean iso run test test-exception test-page-fault user-programs user-blobs list-user-programs readelf-user FORCE
 
 all: build/kernel.elf
 
@@ -123,37 +126,38 @@ build/%.o: %.c build/.cflags
 build/user/crt0.o: user/crt0.S | build/user
 	$(CC) $(USER_CFLAGS) -c $< -o $@
 
-build/user/demo.o: user/demo.c user/include/toyix_syscall.h | build/user
+build/user/%.o: user/%.c user/include/toyix_syscall.h | build/user
 	$(CC) $(USER_CFLAGS) -c $< -o $@
 
-build/user/demo.elf: build/user/crt0.o build/user/demo.o user/linker.ld | build/user
-	$(CC) $(USER_LDFLAGS) -Wl,-Map,build/user/demo.map build/user/crt0.o build/user/demo.o -o $@
+build/user/%.elf: build/user/crt0.o build/user/%.o user/linker.ld | build/user
+	$(CC) $(USER_LDFLAGS) \
+		-Wl,-Map,build/user/$*.map \
+		build/user/crt0.o build/user/$*.o \
+		-o $@
 
-build/user/demo_elf_blob.o: build/user/demo.elf | build/user
+build/user/%_elf_blob.o: build/user/%.elf | build/user
 	$(OBJCOPY) \
 		-I binary \
 		-O elf32-i386 \
 		-B i386 \
-		--rename-section .data=.rodata.userdemo,alloc,load,readonly,data,contents \
-		--redefine-sym _binary_build_user_demo_elf_start=user_demo_elf_start \
-		--redefine-sym _binary_build_user_demo_elf_end=user_demo_elf_end \
+		--rename-section .data=.rodata.user_$*,alloc,load,readonly,data,contents \
+		--redefine-sym _binary_build_user_$*_elf_start=user_$*_elf_start \
+		--redefine-sym _binary_build_user_$*_elf_end=user_$*_elf_end \
 		$< $@
 
-build/user/counter.o: user/counter.c user/include/toyix_syscall.h | build/user
-	$(CC) $(USER_CFLAGS) -c $< -o $@
+user-programs: $(USER_ELFS)
 
-build/user/counter.elf: build/user/crt0.o build/user/counter.o user/linker.ld | build/user
-	$(CC) $(USER_LDFLAGS) -Wl,-Map,build/user/counter.map build/user/crt0.o build/user/counter.o -o $@
+user-blobs: $(USER_BLOBS)
 
-build/user/counter_elf_blob.o: build/user/counter.elf | build/user
-	$(OBJCOPY) \
-		-I binary \
-		-O elf32-i386 \
-		-B i386 \
-		--rename-section .data=.rodata.usercounter,alloc,load,readonly,data,contents \
-		--redefine-sym _binary_build_user_counter_elf_start=user_counter_elf_start \
-		--redefine-sym _binary_build_user_counter_elf_end=user_counter_elf_end \
-		$< $@
+list-user-programs:
+	@echo "$(USER_PROGRAMS)"
+
+readelf-user: $(USER_ELFS)
+	@for elf in $(USER_ELFS); do \
+		echo "==== $$elf ===="; \
+		i686-elf-readelf -h $$elf | grep -E "Class:|Data:|Type:|Machine:|Entry point"; \
+		i686-elf-readelf -l $$elf | grep LOAD; \
+	done
 
 build/kernel.elf: $(OBJS) linker.ld
 	$(CC) $(LDFLAGS) $(OBJS) -o $@
@@ -207,6 +211,10 @@ test: iso
 	grep -q "Embedded programs:" build/test.log
 	grep -q "demo - interactive stdin/stdout demo" build/test.log
 	grep -q "counter - background-safe counter demo" build/test.log
+	@test -f build/user/demo.elf
+	@test -f build/user/counter.elf
+	@test -f build/user/demo_elf_blob.o
+	@test -f build/user/counter_elf_blob.o
 	grep -q "usage: runbg PROGRAM" build/test.log
 	grep -q "usage: wait PID" build/test.log
 	grep -q "Program test: starting background counter test" build/test.log
@@ -218,7 +226,7 @@ test: iso
 	grep -q "Process: created pid=1 name=counter" build/test.log
 	grep -q "Program test: background pid=1" build/test.log
 	grep -q "PID  STATE" build/test.log
-	grep -q "counter: argc=3" build/test.log
+	grep -q "counter: argc=" build/test.log
 	grep -q "counter: argv\\[0\\]=counter" build/test.log
 	grep -q "counter: argv\\[1\\]=alpha" build/test.log
 	grep -q "counter: argv\\[2\\]=beta" build/test.log

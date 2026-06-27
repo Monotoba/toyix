@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
 [![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20memory%20%2B%20threads%20%2B%20sync%20%2B%20exceptions-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, a first ring-3 user-mode syscall path, a minimal process abstraction with checked user-memory copying, fd-style read/write syscalls, per-process address spaces, scheduler CR3 switching, process teardown with user-page and page-table cleanup, an initial ELF32 user-program loader, a tiny userland build pipeline that compiles and embeds real user C programs into the kernel image, an initial `argc`/`argv` user-stack handoff for compiled user programs, an embedded program registry with foreground and background launch paths, and a global process table with `ps`, `runbg`, and `wait PID` monitor support backed by both an interactive `demo` program and a background-safe `counter` program, with boot behavior verified through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, a first ring-3 user-mode syscall path, a minimal process abstraction with checked user-memory copying, fd-style read/write syscalls, per-process address spaces, scheduler CR3 switching, process teardown with user-page and page-table cleanup, an initial ELF32 user-program loader, a tiny userland build pipeline that compiles and embeds real user C programs into the kernel image, an initial `argc`/`argv` user-stack handoff for compiled user programs, an embedded program registry with foreground and background launch paths, and a global process table with `ps`, `runbg`, and `wait PID` monitor support backed by both an interactive `demo` program and a background-safe `counter` program, with the embedded user-program build now driven by a `USER_PROGRAMS` list and pattern rules, and with boot behavior verified through automated QEMU smoke tests.
 
 Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us).
 
@@ -53,7 +53,7 @@ Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us
 - Per-process page directories with shared kernel mappings, private user mappings, and scheduler-driven CR3 switching
 - Process wait/destroy helpers with user-page tracking, address-space teardown, and page-directory cleanup
 - Initial ELF32 user-program loading with header validation, `PT_LOAD` segment mapping, BSS zeroing, and explicit entry-point setup
-- Tiny userland build pipeline with syscall headers, startup assembly, a user linker script, compiled `demo` and `counter` ELFs, and `objcopy` embedding into the kernel
+- Tiny userland build pipeline with syscall headers, startup assembly, a user linker script, pattern-rule-driven compiled `demo` and `counter` ELFs, and `objcopy` embedding into the kernel
 - Initial user-stack construction with `argc`, `argv`, `argv[argc] = NULL`, and `crt0` argument handoff into `main(int argc, char **argv)`
 - Embedded program registry with named program lookup plus `programs`, foreground `run`, and background `runbg` monitor commands
 - Global process table with PID lookup plus `ps`, `runbg`, and `wait PID` monitor commands, exercised by a background-safe `counter` process
@@ -161,6 +161,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 25](articles/chapter_25.md)
 - [Chapter 26](articles/chapter_26.md)
 - [Chapter 27](articles/chapter_27.md)
+- [Chapter 28](articles/chapter_28.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

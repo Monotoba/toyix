@@ -1,10 +1,10 @@
 # Toyix Roadmap
 
-This roadmap tracks the direction of the Toyix series after Chapter 27. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
+This roadmap tracks the direction of the Toyix series after Chapter 28. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
 
-Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, process teardown with user-page reclamation, an initial ELF32 loader for user programs, compiled user C programs embedded into the kernel image, an initial `argc`/`argv` startup ABI for user processes, an embedded program registry with monitor-driven foreground and background launches, and a process table with PID-aware monitor commands.
+Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, process teardown with user-page reclamation, an initial ELF32 loader for user programs, compiled user C programs embedded into the kernel image, an initial `argc`/`argv` startup ABI for user processes, an embedded program registry with monitor-driven foreground and background launches, a process table with PID-aware monitor commands, and a pattern-based embedded user-program build pipeline.
 
-The next goal is to harden user-program management beyond the second noninteractive background workload, then build enough process, file, and terminal support to sustain a shell.
+The next goal is to harden process ownership and waiting semantics beyond the current embedded-program launch layer, then build enough process, file, and terminal support to sustain a shell.
 
 ## Completed Chapters
 
@@ -37,17 +37,18 @@ The next goal is to harden user-program management beyond the second noninteract
 | 25 | Embedded program registry and `run` monitor command |
 | 26 | Process table, `ps`, `runbg`, and `wait PID` |
 | 27 | A second user program for safe background execution |
+| 28 | Pattern-based user-program build rules and a `USER_PROGRAMS` list |
 
 ## Near-Term Plan
 
-These chapters are the most likely next path because they build directly on Chapter 27.
+These chapters are the most likely next path because they build directly on Chapter 28.
 
 | Chapter | Planned Topic |
 | ------: | ------------- |
-| 28 | Pattern-based user-program build rules and a `USER_PROGRAMS` list |
 | 29 | Parent/child process relationships and exit status storage |
 | 30 | `wait`/`waitpid`-style syscall support |
 | 31 | Safer user fault handling that kills a process instead of panicking |
+| 32 | First user-mode shell |
 
 ## Medium-Term Plan
 
@@ -85,12 +86,11 @@ These areas are intentionally broader. They may split into many chapters as the 
 
 ## Current Direction
 
-The most important architectural gap after Chapter 27 is stronger process ownership rules, cleaner user-program scaling, and fault containment for user tasks.
+The most important architectural gap after Chapter 28 is stronger process ownership rules, fuller process control, and fault containment for user tasks.
 
-The kernel now loads real compiled user ELFs, passes a real initial stack with `argc` and `argv`, can launch named embedded programs from the monitor in the foreground or background, and can track them by PID. The next stage should preserve that path while making program management scale beyond two hard-coded demos:
+The kernel now loads real compiled user ELFs, passes a real initial stack with `argc` and `argv`, can launch named embedded programs from the monitor in the foreground or background, can track them by PID, and can scale the embedded build through a pattern-based `USER_PROGRAMS` pipeline. The next stage should preserve that path while making process semantics more Unix-like:
 
 ```text
-pattern-based embedded program builds
 safer runbg workflows
 parent/child relationships
 explicit collected-vs-running lifecycle

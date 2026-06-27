@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_28] - 2026-06-26
+
+- Replace explicit per-program user build rules with `USER_PROGRAMS`, `USER_ELFS`, and `USER_BLOBS` pattern-driven Makefile targets.
+- Add `user-programs`, `user-blobs`, `list-user-programs`, and `readelf-user` helper targets for inspecting the embedded userland build.
+- Clean up the embedded program registry declarations in `kernel/program.c` with reusable declaration and table macros.
+- Keep the Chapter 27 runtime path intact while updating smoke expectations and chapter text for the scalable user-program build milestone.
+
 ## [Chapter_27] - 2026-06-26
 
 - Add a second embedded user program, `counter`, that prints its arguments, sleeps between ticks, and exits with a predictable status code.
