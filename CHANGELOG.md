@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_29] - 2026-06-26
+
+- Add a first shared userland runtime with `user/include/toyix.h` and `user/lib/toyix.c`.
+- Move common string and integer output helpers out of `demo.c` and `counter.c` into the shared runtime layer.
+- Update the user-program build rules and test assertions so the shared runtime object is compiled, linked into every user ELF, and verified by the smoke suite.
+- Update Chapter 29, the README, the series index, and the roadmap for the first userland runtime milestone.
+
 ## [Chapter_28] - 2026-06-26
 
 - Replace explicit per-program user build rules with `USER_PROGRAMS`, `USER_ELFS`, and `USER_BLOBS` pattern-driven Makefile targets.

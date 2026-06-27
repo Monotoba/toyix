@@ -1,10 +1,10 @@
 # Toyix Roadmap
 
-This roadmap tracks the direction of the Toyix series after Chapter 28. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
+This roadmap tracks the direction of the Toyix series after Chapter 29. It is a living plan, not a promise that every future chapter title or boundary will stay fixed.
 
-Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, process teardown with user-page reclamation, an initial ELF32 loader for user programs, compiled user C programs embedded into the kernel image, an initial `argc`/`argv` startup ABI for user processes, an embedded program registry with monitor-driven foreground and background launches, a process table with PID-aware monitor commands, and a pattern-based embedded user-program build pipeline.
+Toyix has moved beyond early bootstrapping. The current system already has paging, a heap, kernel threads, preemption, blocking primitives, keyboard and terminal input, a kernel monitor, ring-3 entry, fd-style syscalls, minimal processes, per-process address spaces with `CR3` switching, process teardown with user-page reclamation, an initial ELF32 loader for user programs, compiled user C programs embedded into the kernel image, an initial `argc`/`argv` startup ABI for user processes, an embedded program registry with monitor-driven foreground and background launches, a process table with PID-aware monitor commands, a pattern-based embedded user-program build pipeline, and a first shared userland runtime library.
 
-The next goal is to harden process ownership and waiting semantics beyond the current embedded-program launch layer, then build enough process, file, and terminal support to sustain a shell.
+The next goal is to continue building out the userland runtime so future programs can be written more cleanly before the series returns to stronger process semantics and shell-oriented work.
 
 ## Completed Chapters
 
@@ -38,17 +38,18 @@ The next goal is to harden process ownership and waiting semantics beyond the cu
 | 26 | Process table, `ps`, `runbg`, and `wait PID` |
 | 27 | A second user program for safe background execution |
 | 28 | Pattern-based user-program build rules and a `USER_PROGRAMS` list |
+| 29 | First userland runtime |
 
 ## Near-Term Plan
 
-These chapters are the most likely next path because they build directly on Chapter 28.
+These chapters are the most likely next path because they build directly on Chapter 29.
 
 | Chapter | Planned Topic |
 | ------: | ------------- |
-| 29 | Parent/child process relationships and exit status storage |
-| 30 | `wait`/`waitpid`-style syscall support |
-| 31 | Safer user fault handling that kills a process instead of panicking |
-| 32 | First user-mode shell |
+| 30 | Tiny formatted user output with `toyix_printf` |
+| 31 | Parent/child process relationships and exit status storage |
+| 32 | `wait`/`waitpid`-style syscall support |
+| 33 | Safer user fault handling that kills a process instead of panicking |
 
 ## Medium-Term Plan
 
@@ -86,9 +87,9 @@ These areas are intentionally broader. They may split into many chapters as the 
 
 ## Current Direction
 
-The most important architectural gap after Chapter 28 is stronger process ownership rules, fuller process control, and fault containment for user tasks.
+The most important architectural gap after Chapter 29 is still stronger process ownership rules, fuller process control, and fault containment for user tasks, but the userland support layer now has enough structure to expand without copying helper code across every program.
 
-The kernel now loads real compiled user ELFs, passes a real initial stack with `argc` and `argv`, can launch named embedded programs from the monitor in the foreground or background, can track them by PID, and can scale the embedded build through a pattern-based `USER_PROGRAMS` pipeline. The next stage should preserve that path while making process semantics more Unix-like:
+The kernel now loads real compiled user ELFs, passes a real initial stack with `argc` and `argv`, can launch named embedded programs from the monitor in the foreground or background, can track them by PID, can scale the embedded build through a pattern-based `USER_PROGRAMS` pipeline, and can share basic runtime helpers through `toyix.h` and `toyix.c`. The next stage should preserve that path while making both user code and process semantics more Unix-like:
 
 ```text
 safer runbg workflows

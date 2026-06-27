@@ -13,6 +13,8 @@ OBJCOPY     ?= $(TARGET)-objcopy
 USER_PROGRAMS := demo counter
 USER_ELFS := $(USER_PROGRAMS:%=build/user/%.elf)
 USER_BLOBS := $(USER_PROGRAMS:%=build/user/%_elf_blob.o)
+USER_LIB_SRCS := user/lib/toyix.c
+USER_LIB_OBJS := $(USER_LIB_SRCS:user/lib/%.c=build/user/lib/%.o)
 
 CFLAGS := -std=gnu11 \
           -ffreestanding \
@@ -115,6 +117,9 @@ build/arch/x86/paging.o: arch/x86/paging.c build/.cflags
 build/user:
 	@mkdir -p build/user
 
+build/user/lib:
+	@mkdir -p build/user/lib
+
 build/%.o: %.asm
 	@mkdir -p $(dir $@)
 	$(AS) -f elf32 $< -o $@
@@ -126,13 +131,16 @@ build/%.o: %.c build/.cflags
 build/user/crt0.o: user/crt0.S | build/user
 	$(CC) $(USER_CFLAGS) -c $< -o $@
 
-build/user/%.o: user/%.c user/include/toyix_syscall.h | build/user
+build/user/lib/%.o: user/lib/%.c user/include/toyix.h user/include/toyix_syscall.h | build/user/lib
 	$(CC) $(USER_CFLAGS) -c $< -o $@
 
-build/user/%.elf: build/user/crt0.o build/user/%.o user/linker.ld | build/user
+build/user/%.o: user/%.c user/include/toyix.h user/include/toyix_syscall.h | build/user
+	$(CC) $(USER_CFLAGS) -c $< -o $@
+
+build/user/%.elf: build/user/crt0.o build/user/%.o $(USER_LIB_OBJS) user/linker.ld | build/user
 	$(CC) $(USER_LDFLAGS) \
 		-Wl,-Map,build/user/$*.map \
-		build/user/crt0.o build/user/$*.o \
+		build/user/crt0.o build/user/$*.o $(USER_LIB_OBJS) \
 		-o $@
 
 build/user/%_elf_blob.o: build/user/%.elf | build/user
@@ -145,7 +153,7 @@ build/user/%_elf_blob.o: build/user/%.elf | build/user
 		--redefine-sym _binary_build_user_$*_elf_end=user_$*_elf_end \
 		$< $@
 
-user-programs: $(USER_ELFS)
+user-programs: $(USER_LIB_OBJS) $(USER_ELFS)
 
 user-blobs: $(USER_BLOBS)
 
@@ -171,7 +179,7 @@ iso: build/kernel.elf grub.cfg
 run: iso
 	$(QEMU) -cdrom build/toyix.iso -serial stdio
 
-test: iso
+test: iso $(USER_LIB_OBJS)
 	@mkdir -p build
 	@rm -f build/test.log
 	@timeout 10s $(QEMU) \
@@ -215,6 +223,7 @@ test: iso
 	@test -f build/user/counter.elf
 	@test -f build/user/demo_elf_blob.o
 	@test -f build/user/counter_elf_blob.o
+	@test -f build/user/lib/toyix.o
 	grep -q "usage: runbg PROGRAM" build/test.log
 	grep -q "usage: wait PID" build/test.log
 	grep -q "Program test: starting background counter test" build/test.log
@@ -242,7 +251,7 @@ test: iso
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, process table, and background counter smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, process table, and user runtime smoke test passed."
 
 test-exception:
 	$(MAKE) clean
