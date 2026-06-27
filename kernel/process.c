@@ -62,8 +62,8 @@ const char *process_state_name(process_state_t state) {
             return "new";
         case PROCESS_RUNNING:
             return "running";
-        case PROCESS_EXITED:
-            return "exited";
+        case PROCESS_ZOMBIE:
+            return "zombie";
         case PROCESS_DESTROYED:
             return "destroyed";
         default:
@@ -119,6 +119,7 @@ process_t *process_create_empty(const char *name) {
 
     process->magic = PROCESS_MAGIC;
     process->pid = next_pid++;
+    process->parent_pid = 0;
     process->name = name != 0 ? name : "unnamed";
     process->state = PROCESS_NEW;
     process->address_space = address_space_create();
@@ -138,6 +139,34 @@ process_t *process_create_empty(const char *name) {
     irq_restore(flags);
 
     return process;
+}
+
+void process_set_parent(process_t *process, uint32_t parent_pid) {
+    validate_live_process(process);
+
+    irq_flags_t flags = irq_save();
+    process->parent_pid = parent_pid;
+    irq_restore(flags);
+}
+
+uint32_t process_parent_pid(process_t *process) {
+    validate_live_process(process);
+
+    irq_flags_t flags = irq_save();
+    uint32_t parent_pid = process->parent_pid;
+    irq_restore(flags);
+
+    return parent_pid;
+}
+
+int process_is_child_of(process_t *process, uint32_t parent_pid) {
+    validate_live_process(process);
+
+    irq_flags_t flags = irq_save();
+    int result = process->parent_pid == parent_pid;
+    irq_restore(flags);
+
+    return result;
 }
 
 static uintptr_t page_align_down(uintptr_t value) {
@@ -477,11 +506,29 @@ process_t *process_find(uint32_t pid) {
 
 typedef struct process_snapshot {
     uint32_t pid;
+    uint32_t parent_pid;
     process_state_t state;
     uint32_t exit_code;
     int exited;
     const char *name;
 } process_snapshot_t;
+
+static void print_padded_u32(uint32_t value, uint32_t width) {
+    console_write_u32_dec(value);
+
+    uint32_t digits = 1;
+    uint32_t tmp = value;
+
+    while (tmp >= 10u) {
+        tmp /= 10u;
+        digits++;
+    }
+
+    while (digits < width) {
+        console_putc(' ');
+        digits++;
+    }
+}
 
 void process_list(void) {
     process_snapshot_t snapshots[PROCESS_SNAPSHOT_MAX];
@@ -492,6 +539,7 @@ void process_list(void) {
 
     while (cur != 0 && count < PROCESS_SNAPSHOT_MAX) {
         snapshots[count].pid = cur->pid;
+        snapshots[count].parent_pid = cur->parent_pid;
         snapshots[count].state = cur->state;
         snapshots[count].exit_code = cur->exit_code;
         snapshots[count].exited = cur->exited;
@@ -503,24 +551,17 @@ void process_list(void) {
     uint32_t total = process_count;
     irq_restore(flags);
 
-    console_writeln("PID  STATE     EXIT  NAME");
+    console_writeln("PID  PPID STATE     EXIT  NAME");
 
     for (uint32_t i = 0; i < count; ++i) {
-        console_write_u32_dec(snapshots[i].pid);
-
-        if (snapshots[i].pid < 10) {
-            console_write("    ");
-        } else if (snapshots[i].pid < 100) {
-            console_write("   ");
-        } else {
-            console_write("  ");
-        }
+        print_padded_u32(snapshots[i].pid, 5);
+        print_padded_u32(snapshots[i].parent_pid, 5);
 
         const char *state = process_state_name(snapshots[i].state);
         console_write(state);
 
         uint32_t state_len = (uint32_t)kstrlen(state);
-        while (state_len < 9) {
+        while (state_len < 10) {
             console_putc(' ');
             state_len++;
         }
@@ -557,7 +598,7 @@ void process_exit_current(uint32_t exit_code) {
 
     process->exit_code = exit_code;
     process->exited = 1;
-    process->state = PROCESS_EXITED;
+    process->state = PROCESS_ZOMBIE;
 
     last_exit_code = exit_code;
     last_exit_seen = 1;
@@ -591,14 +632,25 @@ uint32_t process_wait(process_t *process) {
 void process_destroy(process_t *process) {
     validate_live_process(process);
 
-    if (!process->exited) {
+    if (!process->exited && process->state != PROCESS_ZOMBIE) {
         kernel_panic("process_destroy called on running process");
     }
 
     uint32_t pid = process->pid;
+    uint32_t parent_pid = process->parent_pid;
     const char *name = process->name;
 
     irq_flags_t flags = irq_save();
+    process_t *cur = process_head;
+
+    while (cur != 0) {
+        if (cur->parent_pid == pid) {
+            cur->parent_pid = 0;
+        }
+
+        cur = cur->next;
+    }
+
     process_table_remove(process);
     irq_restore(flags);
 
@@ -614,6 +666,8 @@ void process_destroy(process_t *process) {
 
     console_write("Process: destroyed pid=");
     console_write_u32_dec(pid);
+    console_write(" ppid=");
+    console_write_u32_dec(parent_pid);
     console_write(" name=");
     console_writeln(name);
 }

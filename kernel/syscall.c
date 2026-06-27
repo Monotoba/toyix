@@ -176,10 +176,22 @@ static void syscall_exec(interrupt_frame_t *frame) {
 static void syscall_waitpid(interrupt_frame_t *frame) {
     uint32_t pid = frame->ebx;
     uintptr_t user_status = (uintptr_t)frame->ecx;
-    process_t *process = process_find(pid);
+    process_t *current = process_current();
+    process_t *process = 0;
     uint32_t status = 0;
 
-    if (process == 0 || process_current() == process) {
+    if (current == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    process = process_find(pid);
+    if (process == 0 || process == current) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (!process_is_child_of(process, current->pid)) {
         frame->eax = 0xFFFFFFFFu;
         return;
     }

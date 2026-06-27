@@ -41,10 +41,11 @@ The remaining work is no longer best described as a loose set of future themes. 
 | 29 | First userland runtime |
 | 30 | First user-mode shell |
 | 31 | `SYS_EXEC`, `SYS_WAITPID`, and shell-launched programs |
+| 32 | Process ownership, waiting, and job state |
 
 ## Planned Chapter Path
 
-The roadmap now runs from Chapter 32 through Chapter 111.
+The roadmap now runs from Chapter 33 through Chapter 111.
 
 ### 1. User Shell and Process Control
 
@@ -52,7 +53,6 @@ These chapters turn the current embedded-user-program path into a real shell and
 
 | Chapter | Topic |
 | ------: | ----- |
-| 32 | Process Ownership, Waiting, and Job State |
 | 33 | Process Termination and Kill Checks |
 
 ### 2. File APIs and Program Lookup
@@ -192,7 +192,7 @@ The planned chapters imply these concrete milestones:
 
 The roadmap is now centered on reaching a usable text-based operating system after the first shell milestone and before any windowing system work begins.
 
-That means the priorities after Chapter 31 are:
+That means the priorities after Chapter 32 are:
 
 ```text
 user shell and process control

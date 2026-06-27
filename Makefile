@@ -234,10 +234,11 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "ELF32: loaded PT_LOAD vaddr=0x40100000" build/test.log
 	grep -q "ELF32: entry=0x40100000" build/test.log
 	grep -q "Process: initial stack argc=3" build/test.log
-	grep -q "Program: launching counter argc=3" build/test.log
+	grep -q "Program: launching counter argc=3 ppid=0" build/test.log
 	grep -q "Process: created pid=1 name=counter" build/test.log
 	grep -q "Program test: background pid=1" build/test.log
-	grep -q "PID  STATE" build/test.log
+	grep -q "PID  PPID STATE" build/test.log
+	grep -q "zombie" build/test.log
 	grep -q "counter: argc=" build/test.log
 	grep -q "counter: argv\\[0\\]=counter" build/test.log
 	grep -q "counter: argv\\[1\\]=alpha" build/test.log
@@ -247,10 +248,10 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "counter: tick 3" build/test.log
 	grep -q "Syscall: process counter pid=1 exited code 4" build/test.log
 	grep -q "Address space: destroyed process page directory" build/test.log
-	grep -q "Process: destroyed pid=1 name=counter" build/test.log
+	grep -E -q "Process: destroyed pid=[0-9]+ ppid=[0-9]+ name=counter" build/test.log
 	grep -q "Program test: background counter cleanup sanity check passed" build/test.log
 	grep -q "Program test: starting user shell test" build/test.log
-	grep -q "Program: launching shell argc=3" build/test.log
+	grep -q "Program: launching shell argc=3 ppid=0" build/test.log
 	grep -q "Process: created pid=" build/test.log
 	grep -q "shell: Toyix user shell" build/test.log
 	grep -q "shell: startup argc=3" build/test.log
@@ -259,6 +260,7 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "shell: argv\\[2\\]=beta" build/test.log
 	grep -q "commands: help, echo, args, run, exit" build/test.log
 	grep -q "hello from shell" build/test.log
+	grep -q "Program: launching counter argc=3 ppid=" build/test.log
 	grep -q "shell: run counter pid=" build/test.log
 	grep -q "shell: counter exited code 4" build/test.log
 	grep -q "argv\\[0\\]=shell" build/test.log
@@ -267,13 +269,14 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "Syscall: process counter pid=.*exited code 4" build/test.log
 	grep -q "Syscall: process shell pid=" build/test.log
 	grep -q "exited code 7" build/test.log
+	grep -E -q "Process: destroyed pid=[0-9]+ ppid=[0-9]+ name=shell" build/test.log
 	grep -q "Program test: user shell cleanup sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, process table, user shell exec, and waitpid smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, process ownership, zombies, exec, and waitpid smoke test passed."
 
 test-exception:
 	$(MAKE) clean

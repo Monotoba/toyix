@@ -87,6 +87,7 @@ static void cmd_run(int argc, char **argv) {
 
     if (toyix_waitpid((toyix_u32)pid, &status) != 0) {
         toyix_printf("run: wait failed for pid %d\n", pid);
+        toyix_puts("run: process may not be a child or may not exist");
         return;
     }
 

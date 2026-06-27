@@ -111,6 +111,11 @@ process_t *program_create_process(
         program->image_start,
         image_size
     );
+    process_t *parent = process_current();
+
+    if (parent != 0) {
+        process_set_parent(process, parent->pid);
+    }
 
     const char *default_argv[] = {
         program->name
@@ -129,6 +134,8 @@ process_t *program_create_process(
     console_write(program->name);
     console_write(" argc=");
     console_write_u32_dec((uint32_t)argc);
+    console_write(" ppid=");
+    console_write_u32_dec(process_parent_pid(process));
     console_putc('\n');
 
     process_start_user(process);

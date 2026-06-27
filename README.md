@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
 [![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20memory%20%2B%20threads%20%2B%20sync%20%2B%20exceptions-blue.svg)](tests/smoke.sh)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, a first ring-3 user-mode syscall path, a minimal process abstraction with checked user-memory copying, fd-style read/write syscalls, per-process address spaces, scheduler CR3 switching, process teardown with user-page and page-table cleanup, an initial ELF32 user-program loader, a tiny userland build pipeline that compiles and embeds real user C programs into the kernel image, an initial `argc`/`argv` user-stack handoff for compiled user programs, an embedded program registry with foreground and background launch paths, a global process table with `ps`, `runbg`, and `wait PID` monitor support backed by `demo`, `counter`, and a first interactive user-mode `shell`, plus a shared userland runtime library and shell-launched process control through `SYS_EXEC`, `SYS_WAITPID`, and the shell `run` built-in, with boot behavior verified through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, a first ring-3 user-mode syscall path, a minimal process abstraction with checked user-memory copying, fd-style read/write syscalls, per-process address spaces, scheduler CR3 switching, process teardown with user-page and page-table cleanup, an initial ELF32 user-program loader, a tiny userland build pipeline that compiles and embeds real user C programs into the kernel image, an initial `argc`/`argv` user-stack handoff for compiled user programs, an embedded program registry with foreground and background launch paths, a global process table with `ps`, `runbg`, and `wait PID` monitor support backed by `demo`, `counter`, and a first interactive user-mode `shell`, plus a shared userland runtime library, shell-launched process control through `SYS_EXEC` and `SYS_WAITPID`, and parent-owned zombie child lifecycle tracking, with boot behavior verified through automated QEMU smoke tests.
 
 Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us).
 
@@ -60,6 +60,7 @@ Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us
 - First shared userland runtime with formatted output, string parsing helpers, and line-oriented input support for user programs
 - First interactive ring-3 user-mode shell with `help`, `echo`, `args`, `run`, and `exit`
 - User-facing process-control syscalls with `SYS_EXEC`, `SYS_WAITPID`, and shell-launched embedded programs
+- Parent-owned child processes with zombie state, PPID-aware process listing, and child-only `SYS_WAITPID`
 - QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, address-space setup, heap setup, cooperative threading, preemption, blocking sleep, synchronization, blocking keyboard input, terminal readline, monitor commands, keyboard modifiers, compiled user ELF loading, user-stack argument handoff, embedded/background program launch, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
@@ -168,6 +169,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 29](articles/chapter_29.md)
 - [Chapter 30](articles/chapter_30.md)
 - [Chapter 31](articles/chapter_31.md)
+- [Chapter 32](articles/chapter_32.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

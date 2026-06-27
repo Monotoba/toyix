@@ -10,13 +10,14 @@ struct thread;
 typedef enum process_state {
     PROCESS_NEW = 0,
     PROCESS_RUNNING,
-    PROCESS_EXITED,
+    PROCESS_ZOMBIE,
     PROCESS_DESTROYED
 } process_state_t;
 
 typedef struct process {
     uint32_t magic;
     uint32_t pid;
+    uint32_t parent_pid;
 
     const char *name;
     process_state_t state;
@@ -74,6 +75,10 @@ int process_setup_arguments(
     int argc,
     const char **argv
 );
+
+void process_set_parent(process_t *process, uint32_t parent_pid);
+uint32_t process_parent_pid(process_t *process);
+int process_is_child_of(process_t *process, uint32_t parent_pid);
 
 void process_start_user(process_t *process);
 

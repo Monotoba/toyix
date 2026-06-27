@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_32] - 2026-06-27
+
+- Add per-process parent PID tracking and helper APIs for parent ownership checks.
+- Change exited child processes to a zombie state until explicit collection and include PPID data in process listing and destroy logs.
+- Restrict `SYS_WAITPID` so user processes can wait only on their own children while keeping kernel-side wait/destroy flows available to monitor code and tests.
+- Update Chapter 32, the README, the series index, and the roadmap for the first owned zombie child lifecycle milestone.
+
 ## [Chapter_31] - 2026-06-27
 
 - Add `SYS_EXEC` and `SYS_WAITPID` to the kernel and user syscall ABI.
