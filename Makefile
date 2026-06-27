@@ -10,7 +10,7 @@ GRUB_MKRESCUE := grub-mkrescue
 QEMU        := qemu-system-i386
 OBJCOPY     ?= $(TARGET)-objcopy
 
-USER_PROGRAMS := demo counter
+USER_PROGRAMS := demo counter shell
 USER_ELFS := $(USER_PROGRAMS:%=build/user/%.elf)
 USER_BLOBS := $(USER_PROGRAMS:%=build/user/%_elf_blob.o)
 USER_LIB_SRCS := user/lib/toyix.c
@@ -215,14 +215,17 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "Keyboard test: blocking input-buffer sanity check passed" build/test.log
 	grep -q "Terminal test: readline/backspace sanity check passed" build/test.log
 	grep -q "Monitor test: command table sanity check passed" build/test.log
-	grep -q "Program registry: registered 2 embedded program(s)" build/test.log
+	grep -q "Program registry: registered 3 embedded program(s)" build/test.log
 	grep -q "Embedded programs:" build/test.log
 	grep -q "demo - interactive stdin/stdout demo" build/test.log
 	grep -q "counter - background-safe counter demo" build/test.log
+	grep -q "shell - interactive user-mode shell" build/test.log
 	@test -f build/user/demo.elf
 	@test -f build/user/counter.elf
+	@test -f build/user/shell.elf
 	@test -f build/user/demo_elf_blob.o
 	@test -f build/user/counter_elf_blob.o
+	@test -f build/user/shell_elf_blob.o
 	@test -f build/user/lib/toyix.o
 	grep -q "usage: runbg PROGRAM" build/test.log
 	grep -q "usage: wait PID" build/test.log
@@ -246,12 +249,28 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "Address space: destroyed process page directory" build/test.log
 	grep -q "Process: destroyed pid=1 name=counter" build/test.log
 	grep -q "Program test: background counter cleanup sanity check passed" build/test.log
+	grep -q "Program test: starting user shell test" build/test.log
+	grep -q "Program: launching shell argc=3" build/test.log
+	grep -q "Process: created pid=" build/test.log
+	grep -q "shell: Toyix user shell" build/test.log
+	grep -q "shell: startup argc=3" build/test.log
+	grep -q "shell: argv\\[0\\]=shell" build/test.log
+	grep -q "shell: argv\\[1\\]=alpha" build/test.log
+	grep -q "shell: argv\\[2\\]=beta" build/test.log
+	grep -q "commands: help, echo, args, exit" build/test.log
+	grep -q "hello from shell" build/test.log
+	grep -q "argv\\[0\\]=shell" build/test.log
+	grep -q "argv\\[1\\]=alpha" build/test.log
+	grep -q "argv\\[2\\]=beta" build/test.log
+	grep -q "Syscall: process shell pid=" build/test.log
+	grep -q "exited code 7" build/test.log
+	grep -q "Program test: user shell cleanup sanity check passed" build/test.log
 	grep -q "Monitor: monitor thread started" build/test.log
 	grep -q "Interrupts: enabled" build/test.log
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, sync, monitor, process table, and user runtime smoke test passed."
+	@echo "Boot, memory, heap, sync, monitor, process table, user runtime, and shell smoke test passed."
 
 test-exception:
 	$(MAKE) clean

@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_30] - 2026-06-27
+
+- Extend the shared userland runtime with formatted output, hex printing, numeric parsing, string comparison, whitespace checks, and line-oriented input helpers.
+- Add `user/shell.c` as the first interactive ring-3 user-mode shell with `help`, `echo`, `args`, and `exit`.
+- Expand the embedded program registry and boot-time smoke coverage to build, embed, launch, script, and clean up the shell alongside `demo` and `counter`.
+- Update Chapter 30, the README, the series index, and the roadmap for the first user-mode shell milestone.
+
 ## [Chapter_29] - 2026-06-26
 
 - Add a first shared userland runtime with `user/include/toyix.h` and `user/lib/toyix.c`.

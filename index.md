@@ -54,3 +54,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 27: A Second User Program for Safe Background Execution](articles/chapter_27.md)
 - [Chapter 28: Pattern-Based User Program Build System](articles/chapter_28.md)
 - [Chapter 29: First Userland Runtime](articles/chapter_29.md)
+- [Chapter 30: First User-Mode Shell](articles/chapter_30.md)

@@ -19,3 +19,6 @@ AGENTS.md
 .env.*
 articles/categories.txt
 articles/unpublished/
+articles/new-unpublished/
+articles/normalized/
+articles/nomalized/

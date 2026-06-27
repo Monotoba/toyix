@@ -1,12 +1,14 @@
 // kernel/program.c
 #include <stddef.h>
 #include <stdint.h>
+#include "drivers/input/keyboard.h"
 #include "kernel/console.h"
 #include "kernel/elf_loader.h"
 #include "kernel/panic.h"
 #include "kernel/process.h"
 #include "kernel/program.h"
 #include "kernel/string.h"
+#include "kernel/thread.h"
 
 #define DECLARE_EMBEDDED_PROGRAM(symbol) \
     extern const uint8_t user_##symbol##_elf_start[]; \
@@ -22,6 +24,7 @@
 
 DECLARE_EMBEDDED_PROGRAM(demo);
 DECLARE_EMBEDDED_PROGRAM(counter);
+DECLARE_EMBEDDED_PROGRAM(shell);
 
 static const embedded_program_t programs[] = {
     EMBEDDED_PROGRAM(
@@ -33,6 +36,11 @@ static const embedded_program_t programs[] = {
         counter,
         "counter",
         "background-safe counter demo"
+    ),
+    EMBEDDED_PROGRAM(
+        shell,
+        "shell",
+        "interactive user-mode shell"
     )
 };
 
@@ -173,23 +181,30 @@ int program_run_background(
 }
 
 void program_test_once(void) {
-    console_writeln("Program test: starting background counter test");
-
-    static const char *argv[] = {
+    static const char *counter_argv[] = {
         "counter",
         "alpha",
         "beta"
     };
-
+    static const char *shell_argv[] = {
+        "shell",
+        "alpha",
+        "beta"
+    };
     process_t *process = 0;
+    process_t *found = 0;
+    uint32_t pid = 0;
+    uint32_t exit_code = 0;
+    int rc = 0;
 
-    int rc = program_run_background("counter", 3, argv, &process);
+    console_writeln("Program test: starting background counter test");
+    rc = program_run_background("counter", 3, counter_argv, &process);
 
     if (rc != 0 || process == 0) {
         kernel_panic("program test could not launch counter");
     }
 
-    uint32_t pid = process->pid;
+    pid = process->pid;
 
     console_write("Program test: background pid=");
     console_write_u32_dec(pid);
@@ -197,13 +212,13 @@ void program_test_once(void) {
 
     process_list();
 
-    process_t *found = process_find(pid);
+    found = process_find(pid);
 
     if (found != process) {
         kernel_panic("program test could not find background process by PID");
     }
 
-    uint32_t exit_code = process_wait(process);
+    exit_code = process_wait(process);
 
     if (exit_code != 4) {
         kernel_panic("program test received wrong counter exit code");
@@ -214,4 +229,73 @@ void program_test_once(void) {
     process_destroy(process);
 
     console_writeln("Program test: background counter cleanup sanity check passed");
+
+    console_writeln("Program test: starting user shell test");
+
+    process = 0;
+    rc = program_run_background("shell", 3, shell_argv, &process);
+    if (rc != 0 || process == 0) {
+        kernel_panic("program test could not launch shell");
+    }
+
+    pid = process->pid;
+
+    thread_sleep_ticks(2);
+
+    keyboard_debug_inject_char('h');
+    keyboard_debug_inject_char('e');
+    keyboard_debug_inject_char('l');
+    keyboard_debug_inject_char('p');
+    keyboard_debug_inject_char('\n');
+
+    keyboard_debug_inject_char('e');
+    keyboard_debug_inject_char('c');
+    keyboard_debug_inject_char('h');
+    keyboard_debug_inject_char('o');
+    keyboard_debug_inject_char(' ');
+    keyboard_debug_inject_char('h');
+    keyboard_debug_inject_char('e');
+    keyboard_debug_inject_char('l');
+    keyboard_debug_inject_char('l');
+    keyboard_debug_inject_char('o');
+    keyboard_debug_inject_char(' ');
+    keyboard_debug_inject_char('f');
+    keyboard_debug_inject_char('r');
+    keyboard_debug_inject_char('o');
+    keyboard_debug_inject_char('m');
+    keyboard_debug_inject_char(' ');
+    keyboard_debug_inject_char('s');
+    keyboard_debug_inject_char('h');
+    keyboard_debug_inject_char('e');
+    keyboard_debug_inject_char('l');
+    keyboard_debug_inject_char('l');
+    keyboard_debug_inject_char('\n');
+
+    keyboard_debug_inject_char('a');
+    keyboard_debug_inject_char('r');
+    keyboard_debug_inject_char('g');
+    keyboard_debug_inject_char('s');
+    keyboard_debug_inject_char('\n');
+
+    keyboard_debug_inject_char('e');
+    keyboard_debug_inject_char('x');
+    keyboard_debug_inject_char('i');
+    keyboard_debug_inject_char('t');
+    keyboard_debug_inject_char(' ');
+    keyboard_debug_inject_char('7');
+    keyboard_debug_inject_char('\n');
+
+    found = process_find(pid);
+    if (found != process) {
+        kernel_panic("program test could not find shell process by PID");
+    }
+
+    exit_code = process_wait(process);
+    if (exit_code != 7u) {
+        kernel_panic("program test received wrong shell exit code");
+    }
+
+    process_destroy(process);
+
+    console_writeln("Program test: user shell cleanup sanity check passed");
 }
