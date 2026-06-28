@@ -264,8 +264,17 @@ void program_test_once(void) {
     inject_text("echo hello from shell\n");
     inject_text("cat /README\n");
     inject_text("cat /programs\n");
+    inject_text("stat /README\n");
+    inject_text("stat /programs\n");
+    inject_text("stat /missing\n");
     inject_text("seektest /README\n");
+
+    thread_sleep_ticks(8);
+
     inject_text("run counter alpha beta\n");
+
+    thread_sleep_ticks(12);
+
     inject_text("runbg counter victim\n");
     inject_text("jobs\n");
 

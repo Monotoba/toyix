@@ -220,6 +220,62 @@ static void syscall_seek(interrupt_frame_t *frame) {
     frame->eax = position;
 }
 
+static uint32_t syscall_vfs_type_to_abi(uint32_t vfs_type) {
+    switch (vfs_type) {
+        case VFS_NODE_REGULAR:
+            return TOYIX_FILE_REGULAR;
+
+        case VFS_NODE_DIRECTORY:
+            return TOYIX_FILE_DIRECTORY;
+
+        default:
+            return 0;
+    }
+}
+
+static void syscall_stat(interrupt_frame_t *frame) {
+    uintptr_t user_path = (uintptr_t)frame->ebx;
+    uintptr_t user_stat = (uintptr_t)frame->ecx;
+    process_t *current = process_current();
+    char path[SYSCALL_PATH_MAX];
+    vfs_stat_t vfs_stat_result;
+    toyix_stat_t user_result;
+
+    if (user_path == 0 || user_stat == 0 || current == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (syscall_copy_user_string(user_path, path, sizeof(path)) != 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (vfs_stat(path, &vfs_stat_result) != VFS_OK) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    user_result.type = syscall_vfs_type_to_abi(vfs_stat_result.type);
+    user_result.size = vfs_stat_result.size;
+
+    if (user_result.type == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (copy_to_user(
+            user_stat,
+            &user_result,
+            sizeof(user_result)
+        ) != USERCOPY_OK) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    frame->eax = 0;
+}
+
 static void syscall_exec(interrupt_frame_t *frame) {
     uintptr_t user_name = (uintptr_t)frame->ebx;
     uintptr_t user_argv = (uintptr_t)frame->ecx;
@@ -508,6 +564,11 @@ void syscall_handler(interrupt_frame_t *frame) {
 
         case SYS_SEEK:
             syscall_seek(frame);
+            syscall_finish_or_kill(frame);
+            return;
+
+        case SYS_STAT:
+            syscall_stat(frame);
             syscall_finish_or_kill(frame);
             return;
 

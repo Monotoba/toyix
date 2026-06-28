@@ -60,3 +60,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 33: Process Termination and Kill Checks](articles/chapter_33.md)
 - [Chapter 34: First RAMFS and Core File APIs](articles/chapter_34.md)
 - [Chapter 35: `SYS_SEEK` and Rewindable File Descriptors](articles/chapter_35.md)
+- [Chapter 36: `SYS_STAT` and File Metadata](articles/chapter_36.md)

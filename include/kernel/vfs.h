@@ -14,7 +14,15 @@
 #define TOYIX_SEEK_CUR 1u
 #define TOYIX_SEEK_END 2u
 
+#define VFS_NODE_REGULAR   1u
+#define VFS_NODE_DIRECTORY 2u
+
 typedef struct vfs_file vfs_file_t;
+
+typedef struct vfs_stat {
+    uint32_t type;
+    uint32_t size;
+} vfs_stat_t;
 
 void vfs_init(void);
 
@@ -33,6 +41,7 @@ int vfs_seek(
 );
 uint32_t vfs_tell(vfs_file_t *file);
 uint32_t vfs_size(vfs_file_t *file);
+int vfs_stat(const char *path, vfs_stat_t *out_stat);
 void vfs_close(vfs_file_t *file);
 
 void vfs_test_once(void);

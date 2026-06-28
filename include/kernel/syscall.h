@@ -22,6 +22,10 @@
 #define SYS_OPEN     12u
 #define SYS_CLOSE    13u
 #define SYS_SEEK     14u
+#define SYS_STAT     15u
+
+#define TOYIX_FILE_REGULAR   1u
+#define TOYIX_FILE_DIRECTORY 2u
 
 typedef struct syscall_procinfo {
     uint32_t pid;
@@ -31,6 +35,11 @@ typedef struct syscall_procinfo {
     uint32_t exited;
     uint32_t kill_requested;
 } syscall_procinfo_t;
+
+typedef struct toyix_stat {
+    uint32_t type;
+    uint32_t size;
+} toyix_stat_t;
 
 void syscall_handler(interrupt_frame_t *frame);
 

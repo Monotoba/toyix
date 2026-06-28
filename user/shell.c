@@ -133,8 +133,19 @@ static const char *process_state_name(toyix_u32 state) {
     }
 }
 
+static const char *file_type_name(toyix_u32 type) {
+    switch (type) {
+        case TOYIX_FILE_REGULAR:
+            return "file";
+        case TOYIX_FILE_DIRECTORY:
+            return "directory";
+        default:
+            return "unknown";
+    }
+}
+
 static void cmd_help(void) {
-    toyix_puts("commands: help, echo, args, cat, seektest, run, runbg, jobs, wait, kill, exit");
+    toyix_puts("commands: help, echo, args, cat, seektest, stat, run, runbg, jobs, wait, kill, exit");
 }
 
 static void cmd_echo(int argc, char **argv) {
@@ -278,6 +289,27 @@ static void cmd_seektest(int argc, char **argv) {
     print_chunk("seektest: tail read: ", buffer, got);
 
     toyix_close((toyix_u32)fd);
+}
+
+static void cmd_stat(int argc, char **argv) {
+    toyix_stat_t stat;
+
+    if (argc != 2) {
+        toyix_puts("usage: stat PATH");
+        return;
+    }
+
+    if (toyix_stat(argv[1], &stat) != 0) {
+        toyix_printf("stat: could not stat %s\n", argv[1]);
+        return;
+    }
+
+    toyix_printf(
+        "stat: path=%s type=%s size=%u\n",
+        argv[1],
+        file_type_name(stat.type),
+        stat.size
+    );
 }
 
 static void cmd_run(int argc, char **argv) {
@@ -513,6 +545,11 @@ int main(int argc, char **argv) {
 
         if (toyix_streq(cmd_argv[0], "seektest")) {
             cmd_seektest(cmd_argc, cmd_argv);
+            continue;
+        }
+
+        if (toyix_streq(cmd_argv[0], "stat")) {
+            cmd_stat(cmd_argc, cmd_argv);
             continue;
         }
 

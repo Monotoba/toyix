@@ -22,10 +22,14 @@ typedef int toyix_i32;
 #define SYS_OPEN     12u
 #define SYS_CLOSE    13u
 #define SYS_SEEK     14u
+#define SYS_STAT     15u
 
 #define TOYIX_SEEK_SET 0u
 #define TOYIX_SEEK_CUR 1u
 #define TOYIX_SEEK_END 2u
+
+#define TOYIX_FILE_REGULAR   1u
+#define TOYIX_FILE_DIRECTORY 2u
 
 #define TOYIX_PROCESS_NEW       0u
 #define TOYIX_PROCESS_RUNNING   1u
@@ -40,6 +44,11 @@ typedef struct toyix_procinfo {
     toyix_u32 exited;
     toyix_u32 kill_requested;
 } toyix_procinfo_t;
+
+typedef struct toyix_stat {
+    toyix_u32 type;
+    toyix_u32 size;
+} toyix_stat_t;
 
 static inline toyix_i32 toyix_read(
     toyix_u32 fd,
@@ -234,6 +243,24 @@ static inline toyix_i32 toyix_seek(
           "b"(fd),
           "c"(offset),
           "d"(whence)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_stat(
+    const char *path,
+    toyix_stat_t *stat
+) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_STAT),
+          "b"(path),
+          "c"(stat)
         : "memory"
     );
 

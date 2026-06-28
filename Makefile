@@ -204,11 +204,12 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "Threads: blocking scheduler initialized" build/test.log
 	grep -q "Process: process table initialized" build/test.log
 	grep -q "VFS: initialized RAMFS with 2 file(s)" build/test.log
-	grep -q "VFS test: starting RAMFS open/read/seek/close test" build/test.log
+	grep -q "VFS test: starting RAMFS open/read/seek/stat/close test" build/test.log
+	grep -q "VFS test: /README size=" build/test.log
 	grep -q "VFS test: first bytes: Toyix RA" build/test.log
 	grep -q "VFS test: rewind bytes: Toyix RA" build/test.log
 	grep -q "VFS test: seek bytes: RAMFS" build/test.log
-	grep -q "VFS test: RAMFS seek sanity check passed" build/test.log
+	grep -q "VFS test: RAMFS stat/seek sanity check passed" build/test.log
 	grep -q "Thread test: worker A step 0" build/test.log
 	grep -q "Thread test: worker B step 0" build/test.log
 	grep -q "Thread test: completed software-yield multitasking test" build/test.log
@@ -265,10 +266,13 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "shell: argv\\[0\\]=shell" build/test.log
 	grep -q "shell: argv\\[1\\]=alpha" build/test.log
 	grep -q "shell: argv\\[2\\]=beta" build/test.log
-	grep -q "commands: help, echo, args, cat, seektest, run, runbg, jobs, wait, kill, exit" build/test.log
+	grep -q "commands: help, echo, args, cat, seektest, stat, run, runbg, jobs, wait, kill, exit" build/test.log
 	grep -q "hello from shell" build/test.log
 	grep -q "This file lives inside the kernel image." build/test.log
 	grep -q "The first filesystem is read-only and memory-backed." build/test.log
+	grep -q "stat: path=/README type=file size=" build/test.log
+	grep -q "stat: path=/programs type=file size=" build/test.log
+	grep -q "stat: could not stat /missing" build/test.log
 	grep -q "seektest: first read: Toyix RA" build/test.log
 	grep -q "seektest: rewind read: Toyix RA" build/test.log
 	grep -q "seektest: skip read: RAMFS" build/test.log
@@ -296,7 +300,7 @@ test: iso $(USER_LIB_OBJS)
 	grep -q "Timer: observed 3 ticks" build/test.log
 	grep -q "VMM: initialized kernel address-space mapper" build/test.log
 	grep -q "VMM test: map/translate/write/unmap sanity check passed" build/test.log
-	@echo "Boot, memory, heap, VFS seek, RAMFS, cat, process control, and shell jobs smoke test passed."
+	@echo "Boot, memory, heap, VFS stat/seek, RAMFS, cat, process control, and shell jobs smoke test passed."
 
 test-exception:
 	$(MAKE) clean

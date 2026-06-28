@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_36] - 2026-06-28
+
+- Add `vfs_stat()` plus per-node type metadata so RAMFS paths can report file size and object type without opening a file descriptor.
+- Add `SYS_STAT` to the kernel and user syscall ABI with `toyix_stat_t`, `TOYIX_FILE_REGULAR`, and `TOYIX_FILE_DIRECTORY`.
+- Extend the shell with `stat PATH` and update the scripted boot smoke flow to verify successful file metadata queries and missing-path failures from user mode.
+- Update Chapter 36, the README, the series index, and the roadmap for the first file-metadata syscall milestone.
+
 ## [Chapter_35] - 2026-06-28
 
 - Add `vfs_seek()`, `vfs_tell()`, and `vfs_size()` so RAMFS-backed file descriptors can be rewound and repositioned.

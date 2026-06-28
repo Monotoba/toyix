@@ -9,6 +9,7 @@
 
 typedef struct ramfs_node {
     const char *path;
+    uint32_t type;
     const uint8_t *data;
     uint32_t size;
 } ramfs_node_t;
@@ -31,11 +32,13 @@ static const uint8_t programs_text[] =
 static const ramfs_node_t ramfs_nodes[] = {
     {
         .path = "/README",
+        .type = VFS_NODE_REGULAR,
         .data = readme_text,
         .size = sizeof(readme_text) - 1u
     },
     {
         .path = "/programs",
+        .type = VFS_NODE_REGULAR,
         .data = programs_text,
         .size = sizeof(programs_text) - 1u
     }
@@ -180,6 +183,23 @@ uint32_t vfs_size(vfs_file_t *file) {
     return file->node->size;
 }
 
+int vfs_stat(const char *path, vfs_stat_t *out_stat) {
+    if (path == 0 || out_stat == 0) {
+        return VFS_ERR_INVALID;
+    }
+
+    const ramfs_node_t *node = ramfs_find(path);
+
+    if (node == 0) {
+        return VFS_ERR_NOT_FOUND;
+    }
+
+    out_stat->type = node->type;
+    out_stat->size = node->size;
+
+    return VFS_OK;
+}
+
 void vfs_close(vfs_file_t *file) {
     if (file == 0) {
         return;
@@ -189,7 +209,21 @@ void vfs_close(vfs_file_t *file) {
 }
 
 void vfs_test_once(void) {
-    console_writeln("VFS test: starting RAMFS open/read/seek/close test");
+    console_writeln("VFS test: starting RAMFS open/read/seek/stat/close test");
+
+    vfs_stat_t stat;
+
+    if (vfs_stat("/README", &stat) != VFS_OK) {
+        kernel_panic("VFS test could not stat /README");
+    }
+
+    if (stat.type != VFS_NODE_REGULAR || stat.size == 0u) {
+        kernel_panic("VFS test received invalid /README stat");
+    }
+
+    console_write("VFS test: /README size=");
+    console_write_u32_dec(stat.size);
+    console_writeln(" type=file");
 
     vfs_file_t *file = 0;
 
@@ -239,5 +273,5 @@ void vfs_test_once(void) {
 
     vfs_close(file);
 
-    console_writeln("VFS test: RAMFS seek sanity check passed");
+    console_writeln("VFS test: RAMFS stat/seek sanity check passed");
 }
