@@ -21,6 +21,11 @@ typedef int toyix_i32;
 #define SYS_KILL     11u
 #define SYS_OPEN     12u
 #define SYS_CLOSE    13u
+#define SYS_SEEK     14u
+
+#define TOYIX_SEEK_SET 0u
+#define TOYIX_SEEK_CUR 1u
+#define TOYIX_SEEK_END 2u
 
 #define TOYIX_PROCESS_NEW       0u
 #define TOYIX_PROCESS_RUNNING   1u
@@ -209,6 +214,26 @@ static inline toyix_i32 toyix_close(toyix_u32 fd) {
         : "=a"(result)
         : "a"(SYS_CLOSE),
           "b"(fd)
+        : "memory"
+    );
+
+    return result;
+}
+
+static inline toyix_i32 toyix_seek(
+    toyix_u32 fd,
+    toyix_i32 offset,
+    toyix_u32 whence
+) {
+    toyix_i32 result;
+
+    __asm__ volatile (
+        "int $0x80"
+        : "=a"(result)
+        : "a"(SYS_SEEK),
+          "b"(fd),
+          "c"(offset),
+          "d"(whence)
         : "memory"
     );
 

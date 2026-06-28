@@ -10,6 +10,10 @@
 #define VFS_ERR_NO_MEMORY     -3
 #define VFS_ERR_NOT_SUPPORTED -4
 
+#define TOYIX_SEEK_SET 0u
+#define TOYIX_SEEK_CUR 1u
+#define TOYIX_SEEK_END 2u
+
 typedef struct vfs_file vfs_file_t;
 
 void vfs_init(void);
@@ -21,6 +25,14 @@ int vfs_read(
     uint32_t length,
     uint32_t *out_read
 );
+int vfs_seek(
+    vfs_file_t *file,
+    int32_t offset,
+    uint32_t whence,
+    uint32_t *out_position
+);
+uint32_t vfs_tell(vfs_file_t *file);
+uint32_t vfs_size(vfs_file_t *file);
 void vfs_close(vfs_file_t *file);
 
 void vfs_test_once(void);

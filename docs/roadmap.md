@@ -2,7 +2,7 @@
 
 This roadmap tracks the direction of the Toyix series from the current published chapters through the planned text-based OS milestones ahead.
 
-Toyix already has the early kernel foundation in place: paging, a heap, kernel threads, preemption, blocking primitives, terminal input, a kernel monitor, user-mode entry, fd-style syscalls, minimal processes, per-process address spaces, ELF loading, embedded compiled user programs, `argc`/`argv` startup, a program registry, process-table monitor commands, a shared userland runtime, a first interactive user-mode shell, parent-owned zombie child tracking, shell-visible background jobs, cooperative child termination, and a first read-only RAMFS/VFS path with named file reads from user mode.
+Toyix already has the early kernel foundation in place: paging, a heap, kernel threads, preemption, blocking primitives, terminal input, a kernel monitor, user-mode entry, fd-style syscalls, minimal processes, per-process address spaces, ELF loading, embedded compiled user programs, `argc`/`argv` startup, a program registry, process-table monitor commands, a shared userland runtime, a first interactive user-mode shell, parent-owned zombie child tracking, shell-visible background jobs, cooperative child termination, and a first read-only RAMFS/VFS path with named file reads and rewindable file descriptors from user mode.
 
 The remaining work is no longer best described as a loose set of future themes. The planned chapters define a clearer path from the current embedded-program system to a text-based operating system that can later host a GUI and applications.
 
@@ -44,10 +44,11 @@ The remaining work is no longer best described as a loose set of future themes. 
 | 32 | Process ownership, waiting, and job state |
 | 33 | Process termination and kill checks |
 | 34 | First RAMFS and core file APIs |
+| 35 | `SYS_SEEK` and rewindable file descriptors |
 
 ## Planned Chapter Path
 
-The roadmap now runs from Chapter 35 through Chapter 111.
+The roadmap now runs from Chapter 36 through Chapter 112.
 
 ### 1. User Shell and Process Control
 
@@ -62,17 +63,17 @@ These chapters add the first coherent VFS layer, RAMFS-backed program directorie
 
 | Chapter | Topic |
 | ------: | ----- |
-| 35 | Turning `/programs` into a Real Directory |
-| 36 | Path-Based Program Launching with `/programs` |
-| 37 | Shell Job References with `%1` |
-| 38 | Dynamic `/programs` from the Program Registry |
-| 39 | File Mode Bits and Executable Program Metadata |
-| 40 | Shell `exec` Checks Executable Mode |
-| 41 | Current Working Directories and Filesystem Launch Paths |
-| 42 | `PATH` Search and Command Lookup |
-| 43 | Shell Variables, Expansion, Prompt, and Status |
-| 44 | Conditionals and Command Sequencing |
-| 45 | Command History and Recall |
+| 36 | Turning `/programs` into a Real Directory |
+| 37 | Path-Based Program Launching with `/programs` |
+| 38 | Shell Job References with `%1` |
+| 39 | Dynamic `/programs` from the Program Registry |
+| 40 | File Mode Bits and Executable Program Metadata |
+| 41 | Shell `exec` Checks Executable Mode |
+| 42 | Current Working Directories and Filesystem Launch Paths |
+| 43 | `PATH` Search and Command Lookup |
+| 44 | Shell Variables, Expansion, Prompt, and Status |
+| 45 | Conditionals and Command Sequencing |
+| 46 | Command History and Recall |
 
 ### 3. Writable RAMFS and Shell Redirection
 
@@ -80,8 +81,8 @@ These chapters make the shell materially useful for text-based work before persi
 
 | Chapter | Topic |
 | ------: | ----- |
-| 46 | Writable RAMFS Files and `SYS_CREATE` |
-| 47 | Redirection and Shell I/O Control |
+| 47 | Writable RAMFS Files and `SYS_CREATE` |
+| 48 | Redirection and Shell I/O Control |
 
 ### 4. Block Devices and ToyFS
 
@@ -89,39 +90,39 @@ These chapters build the persistent storage stack: block devices, a buffer cache
 
 | Chapter | Topic |
 | ------: | ----- |
-| 48 | Block Device Abstraction |
-| 49 | RAM Disk Block Device |
-| 50 | Buffer Cache |
-| 51 | Designing ToyFS |
-| 52 | Formatting ToyFS |
-| 53 | Mounting ToyFS |
-| 54 | Reading the ToyFS Root Directory |
-| 55 | ToyFS Name Lookup |
-| 56 | Mounting ToyFS Under `/toyfs` |
-| 57 | Reading Files from ToyFS |
-| 58 | ToyFS Allocation Helpers |
-| 59 | ToyFS Directory Insertion |
-| 60 | Creating Files in ToyFS |
-| 61 | Writing Files in ToyFS |
-| 62 | Truncating ToyFS Files |
-| 63 | Append Writes in ToyFS |
-| 64 | Unlinking ToyFS Files |
-| 65 | Making Directories in ToyFS |
-| 66 | ToyFS Path Walking |
-| 67 | Removing ToyFS Directories |
-| 68 | Rename and ToyFS Checkpoint |
-| 69 | Installing Embedded Programs into ToyFS |
-| 70 | Reading ELF Files Through VFS |
-| 71 | Loading Programs from ToyFS |
-| 72 | Searching `/toyfs/bin` for Programs |
-| 73 | Enforcing Executable Permissions |
-| 74 | Adding `chmod` |
-| 75 | Enforcing Read and Write Permissions |
-| 76 | Directory Permissions and Permission Checkpoint |
-| 77 | Designing Larger ToyFS Files |
-| 78 | Reading ToyFS Indirect Blocks |
-| 79 | Writing ToyFS Indirect Blocks |
-| 80 | Truncation and Large-File Checkpoint |
+| 49 | Block Device Abstraction |
+| 50 | RAM Disk Block Device |
+| 51 | Buffer Cache |
+| 52 | Designing ToyFS |
+| 53 | Formatting ToyFS |
+| 54 | Mounting ToyFS |
+| 55 | Reading the ToyFS Root Directory |
+| 56 | ToyFS Name Lookup |
+| 57 | Mounting ToyFS Under `/toyfs` |
+| 58 | Reading Files from ToyFS |
+| 59 | ToyFS Allocation Helpers |
+| 60 | ToyFS Directory Insertion |
+| 61 | Creating Files in ToyFS |
+| 62 | Writing Files in ToyFS |
+| 63 | Truncating ToyFS Files |
+| 64 | Append Writes in ToyFS |
+| 65 | Unlinking ToyFS Files |
+| 66 | Making Directories in ToyFS |
+| 67 | ToyFS Path Walking |
+| 68 | Removing ToyFS Directories |
+| 69 | Rename and ToyFS Checkpoint |
+| 70 | Installing Embedded Programs into ToyFS |
+| 71 | Reading ELF Files Through VFS |
+| 72 | Loading Programs from ToyFS |
+| 73 | Searching `/toyfs/bin` for Programs |
+| 74 | Enforcing Executable Permissions |
+| 75 | Adding `chmod` |
+| 76 | Enforcing Read and Write Permissions |
+| 77 | Directory Permissions and Permission Checkpoint |
+| 78 | Designing Larger ToyFS Files |
+| 79 | Reading ToyFS Indirect Blocks |
+| 80 | Writing ToyFS Indirect Blocks |
+| 81 | Truncation and Large-File Checkpoint |
 
 ### 5. Moving Core Utilities into Userland
 
@@ -129,18 +130,18 @@ These chapters shift the system from shell-heavy built-ins toward a real userlan
 
 | Chapter | Topic |
 | ------: | ----- |
-| 81 | Moving `cat` into Userland |
-| 82 | Moving `echo` and `touch` into Userland |
-| 83 | Moving `stat` into Userland |
-| 84 | Moving `ls` into Userland |
-| 85 | Moving `mkdir`, `rm`, and `rmdir` into Userland |
-| 86 | Moving `mv` and `chmod` into Userland |
-| 87 | Designing Current Working Directories |
-| 88 | Adding Process Current Working Directories |
-| 89 | Resolving Relative Paths with CWD |
-| 90 | `chdir`, `cd`, `pwd`, and CWD Checkpoint |
-| 91 | Adding the `command` Built-in |
-| 92 | Moving `pwd` into Userland and Userland/CWD Checkpoint |
+| 82 | Moving `cat` into Userland |
+| 83 | Moving `echo` and `touch` into Userland |
+| 84 | Moving `stat` into Userland |
+| 85 | Moving `ls` into Userland |
+| 86 | Moving `mkdir`, `rm`, and `rmdir` into Userland |
+| 87 | Moving `mv` and `chmod` into Userland |
+| 88 | Designing Current Working Directories |
+| 89 | Adding Process Current Working Directories |
+| 90 | Resolving Relative Paths with CWD |
+| 91 | `chdir`, `cd`, `pwd`, and CWD Checkpoint |
+| 92 | Adding the `command` Built-in |
+| 93 | Moving `pwd` into Userland and Userland/CWD Checkpoint |
 
 ### 6. Init, Services, and System Boot Policy
 
@@ -148,19 +149,19 @@ These chapters define the point where Toyix becomes a configurable text-based OS
 
 | Chapter | Topic |
 | ------: | ----- |
-| 93 | Designing the Toyix Init Process |
-| 94 | Adding `/toyfs/bin/init` |
-| 95 | Starting Init and Boot Handoff |
-| 96 | Init, `/etc`, and Boot-Time Configuration |
-| 97 | First Services and Controlled System Shutdown |
-| 98 | TTYs, Sessions, and Terminal Control |
-| 99 | Login, Users, and Process Credentials |
-| 100 | Signals, Pipes, and Shell Pipelines |
-| 101 | Process Spawning, Environment, and Service Supervision |
-| 102 | PCI Discovery, IDE Disks, and a Persistent Root Filesystem |
-| 103 | SATA, AHCI, and Persistent Disk Boot |
-| 104 | Building a Usable Root Filesystem Layout |
-| 105 | System Logging, Boot Scripts, and the First Usable Toyix |
+| 94 | Designing the Toyix Init Process |
+| 95 | Adding `/toyfs/bin/init` |
+| 96 | Starting Init and Boot Handoff |
+| 97 | Init, `/etc`, and Boot-Time Configuration |
+| 98 | First Services and Controlled System Shutdown |
+| 99 | TTYs, Sessions, and Terminal Control |
+| 100 | Login, Users, and Process Credentials |
+| 101 | Signals, Pipes, and Shell Pipelines |
+| 102 | Process Spawning, Environment, and Service Supervision |
+| 103 | PCI Discovery, IDE Disks, and a Persistent Root Filesystem |
+| 104 | SATA, AHCI, and Persistent Disk Boot |
+| 105 | Building a Usable Root Filesystem Layout |
+| 106 | System Logging, Boot Scripts, and the First Usable Toyix |
 
 ### 7. Networking, Devices, and Pre-GUI System Readiness
 
@@ -168,12 +169,12 @@ These chapters push the text-based OS to the point where it is practical to admi
 
 | Chapter | Topic |
 | ------: | ----- |
-| 106 | First Networking: NIC Driver, Ethernet, IPv4, and Ping |
-| 107 | Sockets, DNS, and Boot-Time Network Configuration |
-| 108 | Basic Input and Legacy Device Support |
-| 109 | USB Bring-Up and Removable Storage |
-| 110 | Making Toyix Administrable from Userland |
-| 111 | Packaging, Editing, and the Pre-GUI Toyix Checkpoint |
+| 107 | First Networking: NIC Driver, Ethernet, IPv4, and Ping |
+| 108 | Sockets, DNS, and Boot-Time Network Configuration |
+| 109 | Basic Input and Legacy Device Support |
+| 110 | USB Bring-Up and Removable Storage |
+| 111 | Making Toyix Administrable from Userland |
+| 112 | Packaging, Editing, and the Pre-GUI Toyix Checkpoint |
 
 ## Milestone Checkpoints
 
@@ -181,18 +182,18 @@ The planned chapters imply these concrete milestones:
 
 | Milestone | Expected System State |
 | --------- | --------------------- |
-| After 34 | User shell exists, programs can launch other programs, kill child jobs, and read named files from the first RAMFS |
-| After 47 | The shell supports practical text workflows with writable files and output redirection |
-| After 80 | Toyix has a persistent filesystem with directories, permissions, mutation, and large-file support |
-| After 92 | Core everyday commands run from userland with CWD-aware path handling |
-| After 105 | Toyix boots through `init`, reads `/etc`, manages services, and behaves like a usable text-based operating system |
-| After 111 | Toyix reaches the intended pre-GUI checkpoint: administrable, packageable, storage-backed, and ready for window-system work |
+| After 35 | User shell exists, programs can launch other programs, kill child jobs, read named files from the first RAMFS, and reposition file offsets |
+| After 48 | The shell supports practical text workflows with writable files and output redirection |
+| After 81 | Toyix has a persistent filesystem with directories, permissions, mutation, and large-file support |
+| After 93 | Core everyday commands run from userland with CWD-aware path handling |
+| After 106 | Toyix boots through `init`, reads `/etc`, manages services, and behaves like a usable text-based operating system |
+| After 112 | Toyix reaches the intended pre-GUI checkpoint: administrable, packageable, storage-backed, and ready for window-system work |
 
 ## Current Direction
 
 The roadmap is now centered on reaching a usable text-based operating system after the first shell milestone and before any windowing system work begins.
 
-That means the priorities after Chapter 34 are:
+That means the priorities after Chapter 35 are:
 
 ```text
 user shell and process control

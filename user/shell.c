@@ -134,7 +134,7 @@ static const char *process_state_name(toyix_u32 state) {
 }
 
 static void cmd_help(void) {
-    toyix_puts("commands: help, echo, args, cat, run, runbg, jobs, wait, kill, exit");
+    toyix_puts("commands: help, echo, args, cat, seektest, run, runbg, jobs, wait, kill, exit");
 }
 
 static void cmd_echo(int argc, char **argv) {
@@ -192,6 +192,92 @@ static void cmd_cat(int argc, char **argv) {
     if (toyix_close((toyix_u32)fd) != 0) {
         toyix_puts("cat: close failed");
     }
+}
+
+static void print_chunk(const char *label, const char *buffer, toyix_i32 got) {
+    toyix_printf("%s", label);
+
+    if (got > 0) {
+        toyix_write(FD_STDOUT, buffer, (toyix_u32)got);
+    }
+
+    toyix_putchar('\n');
+}
+
+static void cmd_seektest(int argc, char **argv) {
+    char buffer[16];
+
+    if (argc != 2) {
+        toyix_puts("usage: seektest PATH");
+        return;
+    }
+
+    toyix_i32 fd = toyix_open(argv[1], 0);
+
+    if (fd < 0) {
+        toyix_printf("seektest: could not open %s\n", argv[1]);
+        return;
+    }
+
+    toyix_i32 got = toyix_read((toyix_u32)fd, buffer, 8u);
+
+    if (got < 0) {
+        toyix_puts("seektest: first read failed");
+        toyix_close((toyix_u32)fd);
+        return;
+    }
+
+    print_chunk("seektest: first read: ", buffer, got);
+
+    if (toyix_seek((toyix_u32)fd, 0, TOYIX_SEEK_SET) < 0) {
+        toyix_puts("seektest: rewind failed");
+        toyix_close((toyix_u32)fd);
+        return;
+    }
+
+    got = toyix_read((toyix_u32)fd, buffer, 8u);
+
+    if (got < 0) {
+        toyix_puts("seektest: rewind read failed");
+        toyix_close((toyix_u32)fd);
+        return;
+    }
+
+    print_chunk("seektest: rewind read: ", buffer, got);
+
+    if (toyix_seek((toyix_u32)fd, 6, TOYIX_SEEK_SET) < 0) {
+        toyix_puts("seektest: skip seek failed");
+        toyix_close((toyix_u32)fd);
+        return;
+    }
+
+    got = toyix_read((toyix_u32)fd, buffer, 5u);
+
+    if (got < 0) {
+        toyix_puts("seektest: skip read failed");
+        toyix_close((toyix_u32)fd);
+        return;
+    }
+
+    print_chunk("seektest: skip read: ", buffer, got);
+
+    if (toyix_seek((toyix_u32)fd, -5, TOYIX_SEEK_END) < 0) {
+        toyix_puts("seektest: end-relative seek failed");
+        toyix_close((toyix_u32)fd);
+        return;
+    }
+
+    got = toyix_read((toyix_u32)fd, buffer, 5u);
+
+    if (got < 0) {
+        toyix_puts("seektest: end-relative read failed");
+        toyix_close((toyix_u32)fd);
+        return;
+    }
+
+    print_chunk("seektest: tail read: ", buffer, got);
+
+    toyix_close((toyix_u32)fd);
 }
 
 static void cmd_run(int argc, char **argv) {
@@ -422,6 +508,11 @@ int main(int argc, char **argv) {
 
         if (toyix_streq(cmd_argv[0], "cat")) {
             cmd_cat(cmd_argc, cmd_argv);
+            continue;
+        }
+
+        if (toyix_streq(cmd_argv[0], "seektest")) {
+            cmd_seektest(cmd_argc, cmd_argv);
             continue;
         }
 

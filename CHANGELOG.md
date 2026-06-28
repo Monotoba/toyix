@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_35] - 2026-06-28
+
+- Add `vfs_seek()`, `vfs_tell()`, and `vfs_size()` so RAMFS-backed file descriptors can be rewound and repositioned.
+- Add `SYS_SEEK` to the kernel and user syscall ABI with `TOYIX_SEEK_SET`, `TOYIX_SEEK_CUR`, and `TOYIX_SEEK_END`.
+- Extend the shell with `seektest PATH` and update the scripted boot smoke flow to verify rewind, absolute seek, and end-relative seek behavior from user mode.
+- Update Chapter 35, the README, the series index, and the roadmap for the first rewindable file-descriptor milestone.
+
 ## [Chapter_34] - 2026-06-27
 
 - Add a first read-only RAMFS/VFS layer with exact-path lookup for `/README` and `/programs`.

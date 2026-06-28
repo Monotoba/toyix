@@ -193,6 +193,33 @@ static void syscall_close(interrupt_frame_t *frame) {
     frame->eax = 0;
 }
 
+static void syscall_seek(interrupt_frame_t *frame) {
+    uint32_t fd = frame->ebx;
+    int32_t offset = (int32_t)frame->ecx;
+    uint32_t whence = frame->edx;
+    process_t *current = process_current();
+    vfs_file_t *file = 0;
+    uint32_t position = 0;
+
+    if (current == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    file = process_fd_get(current, fd);
+    if (file == 0) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    if (vfs_seek(file, offset, whence, &position) != VFS_OK) {
+        frame->eax = 0xFFFFFFFFu;
+        return;
+    }
+
+    frame->eax = position;
+}
+
 static void syscall_exec(interrupt_frame_t *frame) {
     uintptr_t user_name = (uintptr_t)frame->ebx;
     uintptr_t user_argv = (uintptr_t)frame->ecx;
@@ -476,6 +503,11 @@ void syscall_handler(interrupt_frame_t *frame) {
 
         case SYS_CLOSE:
             syscall_close(frame);
+            syscall_finish_or_kill(frame);
+            return;
+
+        case SYS_SEEK:
+            syscall_seek(frame);
             syscall_finish_or_kill(frame);
             return;
 

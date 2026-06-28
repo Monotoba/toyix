@@ -59,3 +59,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 32: Process Ownership, Waiting, and Job State](articles/chapter_32.md)
 - [Chapter 33: Process Termination and Kill Checks](articles/chapter_33.md)
 - [Chapter 34: First RAMFS and Core File APIs](articles/chapter_34.md)
+- [Chapter 35: `SYS_SEEK` and Rewindable File Descriptors](articles/chapter_35.md)

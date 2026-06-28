@@ -123,6 +123,63 @@ int vfs_read(
     return VFS_OK;
 }
 
+int vfs_seek(
+    vfs_file_t *file,
+    int32_t offset,
+    uint32_t whence,
+    uint32_t *out_position
+) {
+    if (file == 0 || out_position == 0) {
+        return VFS_ERR_INVALID;
+    }
+
+    int64_t base = 0;
+
+    switch (whence) {
+        case TOYIX_SEEK_SET:
+            base = 0;
+            break;
+
+        case TOYIX_SEEK_CUR:
+            base = (int64_t)file->offset;
+            break;
+
+        case TOYIX_SEEK_END:
+            base = (int64_t)file->node->size;
+            break;
+
+        default:
+            return VFS_ERR_INVALID;
+    }
+
+    int64_t next = base + (int64_t)offset;
+
+    if (next < 0 || next > 0xFFFFFFFFLL) {
+        return VFS_ERR_INVALID;
+    }
+
+    file->offset = (uint32_t)next;
+    *out_position = file->offset;
+
+    return VFS_OK;
+}
+
+uint32_t vfs_tell(vfs_file_t *file) {
+    if (file == 0) {
+        return 0;
+    }
+
+    return file->offset;
+}
+
+uint32_t vfs_size(vfs_file_t *file) {
+    if (file == 0 || file->node == 0) {
+        return 0;
+    }
+
+    return file->node->size;
+}
+
 void vfs_close(vfs_file_t *file) {
     if (file == 0) {
         return;
@@ -132,7 +189,7 @@ void vfs_close(vfs_file_t *file) {
 }
 
 void vfs_test_once(void) {
-    console_writeln("VFS test: starting RAMFS open/read/close test");
+    console_writeln("VFS test: starting RAMFS open/read/seek/close test");
 
     vfs_file_t *file = 0;
 
@@ -143,8 +200,8 @@ void vfs_test_once(void) {
     char buffer[16];
     uint32_t got = 0;
 
-    if (vfs_read(file, buffer, sizeof(buffer) - 1u, &got) != VFS_OK) {
-        kernel_panic("VFS test could not read /README");
+    if (vfs_read(file, buffer, 8u, &got) != VFS_OK || got != 8u) {
+        kernel_panic("VFS test could not read first bytes");
     }
 
     buffer[got] = '\0';
@@ -152,7 +209,35 @@ void vfs_test_once(void) {
     console_write("VFS test: first bytes: ");
     console_writeln(buffer);
 
+    uint32_t pos = 0;
+
+    if (vfs_seek(file, 0, TOYIX_SEEK_SET, &pos) != VFS_OK || pos != 0u) {
+        kernel_panic("VFS test could not rewind");
+    }
+
+    if (vfs_read(file, buffer, 8u, &got) != VFS_OK || got != 8u) {
+        kernel_panic("VFS test could not reread first bytes");
+    }
+
+    buffer[got] = '\0';
+
+    console_write("VFS test: rewind bytes: ");
+    console_writeln(buffer);
+
+    if (vfs_seek(file, 6, TOYIX_SEEK_SET, &pos) != VFS_OK || pos != 6u) {
+        kernel_panic("VFS test could not seek to offset 6");
+    }
+
+    if (vfs_read(file, buffer, 5u, &got) != VFS_OK || got != 5u) {
+        kernel_panic("VFS test could not read after seek");
+    }
+
+    buffer[got] = '\0';
+
+    console_write("VFS test: seek bytes: ");
+    console_writeln(buffer);
+
     vfs_close(file);
 
-    console_writeln("VFS test: RAMFS sanity check passed");
+    console_writeln("VFS test: RAMFS seek sanity check passed");
 }
