@@ -4,9 +4,9 @@
 [![Release](https://github.com/Monotoba/toyix/actions/workflows/release.yml/badge.svg)](https://github.com/Monotoba/toyix/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-i686%20x86-lightgrey.svg)](Makefile)
-[![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20memory%20%2B%20threads%20%2B%20sync%20%2B%20exceptions-blue.svg)](tests/smoke.sh)
+[![Tests](https://img.shields.io/badge/test%20coverage-boot%20%2B%20memory%20%2B%20threads%20%2B%20sync%20%2B%20exceptions-blue.svg)](tests/smoke.py)
 
-Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, a first ring-3 user-mode syscall path, a minimal process abstraction with checked user-memory copying, fd-style read/write syscalls, per-process address spaces, scheduler CR3 switching, process teardown with user-page and page-table cleanup, an initial ELF32 user-program loader, a tiny userland build pipeline that compiles and embeds real user C programs into the kernel image, an initial `argc`/`argv` user-stack handoff for compiled user programs, an embedded program registry with foreground and background launch paths, a global process table with `ps`, `runbg`, and `wait PID` monitor support backed by `demo`, `counter`, and a first interactive user-mode `shell`, plus a shared userland runtime library, shell-launched process control through `SYS_EXEC`, `SYS_WAITPID`, `SYS_GETPID`, `SYS_GETPPID`, `SYS_PROCINFO`, and `SYS_KILL`, with parent-owned zombie child lifecycle tracking, shell-visible background jobs, cooperative child termination, and a first read-only RAMFS/VFS path with `SYS_OPEN`, `SYS_READ`, `SYS_CLOSE`, `SYS_SEEK`, `SYS_STAT`, shell `cat`, `seektest`, and `stat`, all verified through automated QEMU smoke tests.
+Toyix is a small Linux-style teaching operating system written in C and x86 assembly. It currently boots as a Multiboot kernel through GRUB, initializes serial and VGA text consoles, installs early x86 descriptor tables, handles CPU exceptions and hardware IRQs, parses the Multiboot memory map, manages physical pages, enables an initial identity-mapped paging setup, adds a virtual memory wrapper and VMM-backed heap, introduces cooperative kernel threads, timer-driven preemption, blocking sleep primitives, wait queues, mutexes, semaphores, synchronized console output, blocking keyboard input, terminal line editing, Shift/Caps Lock keyboard modifiers, a table-driven interactive kernel monitor, a first ring-3 user-mode syscall path, a minimal process abstraction with checked user-memory copying, fd-style read/write syscalls, per-process address spaces, scheduler CR3 switching, process teardown with user-page and page-table cleanup, an initial ELF32 user-program loader, a tiny userland build pipeline that compiles and embeds real user C programs into the kernel image, an initial `argc`/`argv` user-stack handoff for compiled user programs, an embedded program registry with foreground and background launch paths, a global process table with `ps`, `runbg`, and `wait PID` monitor support backed by `demo`, `counter`, `shell`, and `fstest`, plus a shared userland runtime library, shell-launched process control through `SYS_EXEC`, `SYS_WAITPID`, `SYS_GETPID`, `SYS_GETPPID`, `SYS_PROCINFO`, and `SYS_KILL`, with parent-owned zombie child lifecycle tracking, shell-visible background jobs, cooperative child termination, a first read-only RAMFS/VFS path with `SYS_OPEN`, `SYS_READ`, `SYS_CLOSE`, `SYS_SEEK`, and `SYS_STAT`, and a host-side Python smoke runner that validates captured QEMU logs instead of burying all assertions inside shell `grep` chains.
 
 Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us).
 
@@ -64,7 +64,9 @@ Follow the Toyix development tutorials at [CodeRancher.us](http://CodeRancher.us
 - First read-only RAMFS with exact-path lookup for `/README` and `/programs`
 - First VFS-style file object layer with open, read, seek, stat, close, and per-process file descriptor ownership
 - User-facing file syscalls with `SYS_OPEN`, file-backed `SYS_READ`, `SYS_SEEK`, `SYS_STAT`, and `SYS_CLOSE`
-- Shell `cat PATH`, `seektest PATH`, and `stat PATH` support for reading, repositioning, and inspecting named RAMFS files from user mode
+- Shell `cat PATH` and `stat PATH` support for reading and inspecting named RAMFS files from user mode
+- Dedicated embedded `fstest` user program for file API smoke coverage without test-only shell commands
+- Host-side Python smoke runner that checks build artifacts plus normal-boot, exception, and page-fault serial logs with exact string and regex assertions
 - QEMU test targets for boot, IRQ setup, timer ticks, PMM setup, paging setup, VMM setup, address-space setup, heap setup, cooperative threading, preemption, blocking sleep, synchronization, blocking keyboard input, terminal readline, monitor commands, keyboard modifiers, compiled user ELF loading, user-stack argument handoff, embedded/background program launch, deliberate invalid-opcode exception handling, and deliberate page-fault handling
 - GitHub Actions CI for build and smoke test validation
 
@@ -119,7 +121,15 @@ make run
 make test
 ```
 
+This target builds and boots the normal test image, then captures the serial log at `build/test.log`.
+
 Run the full local smoke suite:
+
+```sh
+python3 tests/smoke.py
+```
+
+The shell wrapper still works too:
 
 ```sh
 tests/smoke.sh
@@ -178,6 +188,7 @@ The smoke suite builds the ISO, boots it under QEMU, captures serial output, ver
 - [Chapter 34](articles/chapter_34.md)
 - [Chapter 35](articles/chapter_35.md)
 - [Chapter 36](articles/chapter_36.md)
+- [Chapter 36.5](articles/chapter_36_5.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

@@ -25,6 +25,7 @@
 DECLARE_EMBEDDED_PROGRAM(demo);
 DECLARE_EMBEDDED_PROGRAM(counter);
 DECLARE_EMBEDDED_PROGRAM(shell);
+DECLARE_EMBEDDED_PROGRAM(fstest);
 
 static const embedded_program_t programs[] = {
     EMBEDDED_PROGRAM(
@@ -41,6 +42,11 @@ static const embedded_program_t programs[] = {
         shell,
         "shell",
         "interactive user-mode shell"
+    ),
+    EMBEDDED_PROGRAM(
+        fstest,
+        "fstest",
+        "user-mode filesystem smoke test"
     )
 };
 
@@ -209,6 +215,9 @@ void program_test_once(void) {
         "alpha",
         "beta"
     };
+    static const char *fstest_argv[] = {
+        "fstest"
+    };
     process_t *process = 0;
     process_t *found = 0;
     uint32_t pid = 0;
@@ -248,6 +257,15 @@ void program_test_once(void) {
 
     console_writeln("Program test: background counter cleanup sanity check passed");
 
+    console_writeln("Program test: starting filesystem user test");
+
+    rc = program_run_foreground("fstest", 1, fstest_argv, &exit_code);
+    if (rc != 0 || exit_code != 0u) {
+        kernel_panic("program test received wrong fstest result");
+    }
+
+    console_writeln("Program test: filesystem user smoke test passed");
+
     console_writeln("Program test: starting user shell test");
 
     process = 0;
@@ -262,12 +280,6 @@ void program_test_once(void) {
 
     inject_text("help\n");
     inject_text("echo hello from shell\n");
-    inject_text("cat /README\n");
-    inject_text("cat /programs\n");
-    inject_text("stat /README\n");
-    inject_text("stat /programs\n");
-    inject_text("stat /missing\n");
-    inject_text("seektest /README\n");
 
     thread_sleep_ticks(8);
 
@@ -280,12 +292,12 @@ void program_test_once(void) {
 
     thread_sleep_ticks(2);
 
-    inject_text("kill 4\n");
+    inject_text("kill 5\n");
 
     thread_sleep_ticks(10);
 
     inject_text("jobs\n");
-    inject_text("wait 4\n");
+    inject_text("wait 5\n");
     inject_text("jobs\n");
     inject_text("args\n");
     inject_text("exit 7\n");

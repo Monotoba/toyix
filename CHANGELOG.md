@@ -4,6 +4,13 @@ All notable changes to Toyix will be documented in this file.
 
 ## [Unreleased]
 
+## [Chapter_36_5] - 2026-06-29
+
+- Add a host-side Python smoke runner that checks captured QEMU logs, regex patterns, and build artifacts instead of storing all assertions inside `Makefile` and shell `grep` chains.
+- Add an embedded `fstest` user program so filesystem syscall coverage no longer depends on the test-only shell `seektest` command.
+- Simplify `make test`, `make test-exception`, and `make test-page-fault` into log-capture targets, keep `tests/smoke.sh` as a compatibility wrapper, and point CI at the Python smoke harness.
+- Update Chapter 36.5, the README, the series index, and the roadmap for the new testing workflow detour.
+
 ## [Chapter_36] - 2026-06-28
 
 - Add `vfs_stat()` plus per-node type metadata so RAMFS paths can report file size and object type without opening a file descriptor.

@@ -61,3 +61,4 @@ More importantly, you will have gained the confidence to keep going.
 - [Chapter 34: First RAMFS and Core File APIs](articles/chapter_34.md)
 - [Chapter 35: `SYS_SEEK` and Rewindable File Descriptors](articles/chapter_35.md)
 - [Chapter 36: `SYS_STAT` and File Metadata](articles/chapter_36.md)
+- [Chapter 36.5: A Testing Detour and a Real Smoke Harness](articles/chapter_36_5.md)

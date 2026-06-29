@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-make clean
-make test
-make test-exception
-make test-page-fault
-
-echo "All Chapter 36 checks passed."
+python3 tests/smoke.py "$@"

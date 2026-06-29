@@ -56,7 +56,7 @@ jobs:
       - name: Run smoke test
         run: |
           export PATH="${RUNNER_TOOL_CACHE}/i686-elf/bin:${PATH}"
-          tests/smoke.sh
+          python3 tests/smoke.py
 
       - name: Upload boot artifacts
         if: always()
